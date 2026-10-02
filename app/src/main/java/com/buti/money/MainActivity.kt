@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
 class ButiViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = ButiDb.get(app).dao()
     val entries = dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val savingsGoals = dao.observeSavingsGoals().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val prefs = app.getSharedPreferences("buti_settings", Context.MODE_PRIVATE)
     var payday by mutableIntStateOf(prefs.getInt("payday", 15))
         private set
@@ -50,6 +51,14 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
     fun add(name: String, amount: Double, type: String, dueDay: Int?, recurring: Boolean = false) = viewModelScope.launch { dao.insert(MoneyEntry(name=name, amount=amount, type=type, dueDay=dueDay, recurring=recurring)) }
     fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
     fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
+
+    fun addSavingsGoal(name: String, targetAmount: Double) = viewModelScope.launch {
+        dao.insertSavingsGoal(SavingsGoal(name=name, targetAmount=targetAmount))
+    }
+
+    fun deleteSavingsGoal(goal: SavingsGoal) = viewModelScope.launch {
+        dao.deleteSavingsGoal(goal)
+    }
 }
 
 enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILLS("Bills"), SPEND("Spend"), SAVINGS("Savings") }
