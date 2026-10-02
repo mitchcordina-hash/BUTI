@@ -15,6 +15,22 @@ android {
         versionCode = 2
         versionName = "0.2"
     }
+    signingConfigs {
+        create("release") {
+            storeFile = file("../buti-release.jks")
+            storePassword = System.getenv("BUTI_STORE_PASSWORD")
+            keyAlias = "buti"
+            keyPassword = System.getenv("BUTI_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
