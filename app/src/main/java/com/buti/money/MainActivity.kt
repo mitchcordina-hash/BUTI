@@ -44,7 +44,7 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
     fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
 }
 
-enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILLS("Bills"), SPEND("Spend"), SAVINGS("Savings") }
+enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILLS("Bills"), SPEND("Spend"), SAVINGS("Save") }
 
 @Composable fun ButiTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = lightColorScheme(), content = content)
