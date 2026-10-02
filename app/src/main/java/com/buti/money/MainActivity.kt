@@ -104,8 +104,16 @@ fun iconFor(s: Screen) = when(s) {
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
         item { Text("Quick actions", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) }
-        item { Button(onClick={go(Screen.BILLS)}, modifier=Modifier.fillMaxWidth().height(54.dp)) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("Add regular expense") } }
-        item { OutlinedButton(onClick={go(Screen.SPEND)}, modifier=Modifier.fillMaxWidth().height(54.dp)) { Text("Record spending") } }
+        item { Button(
+    onClick={go(Screen.BILLS)},
+    modifier=Modifier.fillMaxWidth().height(56.dp),
+    shape=RoundedCornerShape(18.dp)
+) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("Add regular expense") } }
+        item { OutlinedButton(
+    onClick={go(Screen.SPEND)},
+    modifier=Modifier.fillMaxWidth().height(56.dp),
+    shape=RoundedCornerShape(18.dp)
+) { Text("Record spending") } }
         item { PaydayCard(vm) }
     }
 }
