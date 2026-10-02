@@ -66,7 +66,7 @@ enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILL
         bottomBar = {
             NavigationBar {
                 listOf(Screen.DASHBOARD, Screen.INCOME, Screen.BILLS, Screen.SPEND, Screen.SAVINGS).forEach { s ->
-                    NavigationBarItem(selected=screen==s, onClick={screen=s}, icon={ Icon(iconFor(s), null) }, label={Text(s.label)})
+                    NavigationBarItem(selected=screen==s, onClick={screen=s}, icon={ Icon(iconFor(s), null) }, label={Text(s.label, fontSize=11.sp, maxLines=1)})
                 }
             }
         }
