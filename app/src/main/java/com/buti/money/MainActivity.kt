@@ -86,7 +86,7 @@ enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILL
                 Screen.INCOME -> EntryScreen(vm, "INCOME", "Income", "Add income")
                 Screen.BILLS -> EntryScreen(vm, "BILL", "Regular monthly expenses", "Add expense", true)
                 Screen.SPEND -> EntryScreen(vm, "SPEND", "Everyday spending", "Add spending")
-                Screen.SAVINGS -> EntryScreen(vm, "SAVING", "Savings", "Add to savings")
+                Screen.SAVINGS -> SavingsScreen(vm)
             }
         }
     }
@@ -196,6 +196,59 @@ fun iconFor(s: Screen) = when(s) {
 @Composable fun PaydayDialog(current:Int, save:(Int)->Unit, close:()->Unit) {
     var text by remember { mutableStateOf(current.toString()) }
     AlertDialog(onDismissRequest=close, title={Text("Set payday")}, text={ OutlinedTextField(text,{text=it.filter(Char::isDigit).take(2)}, label={Text("Day of month (1–28)")}) }, confirmButton={ Button(onClick={ text.toIntOrNull()?.takeIf{it in 1..28}?.let(save) }, enabled=(text.toIntOrNull()?.let { it in 1..28 } == true)){Text("Save")} }, dismissButton={TextButton(onClick=close){Text("Cancel")}})
+}
+
+@Composable fun SavingsScreen(vm: ButiViewModel) {
+    val entries by vm.entries.collectAsState()
+    val goals by vm.savingsGoals.collectAsState()
+    val savings = entries.filter { it.type == "SAVING" }
+    val totalSaved = savings.sumOf { it.amount }
+
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement=Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Savings", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
+        Text("Total saved €${money(totalSaved)}", style=MaterialTheme.typography.titleMedium)
+
+        Text("Savings goals", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold)
+
+        if (goals.isEmpty()) {
+            Text("No savings goals yet.")
+        } else {
+            goals.forEach { goal ->
+                Card(
+                    modifier=Modifier.fillMaxWidth(),
+                    shape=RoundedCornerShape(18.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalAlignment=Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(goal.name, fontWeight=FontWeight.Bold)
+                            Text("Target €${money(goal.targetAmount)}")
+                        }
+                        IconButton(onClick={vm.deleteSavingsGoal(goal)}) {
+                            Icon(Icons.Default.Delete, null)
+                        }
+                    }
+                }
+            }
+        }
+
+        Text("Savings entries", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold)
+
+        if (savings.isEmpty()) {
+            Text("No savings added yet.")
+        } else {
+            LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                items(savings, key={it.id}) { entry ->
+                    EntryRow(entry, {}, {vm.delete(entry)})
+                }
+            }
+        }
+    }
 }
 
 @Composable fun EntryScreen(vm:ButiViewModel, type:String, title:String, addLabel:String, dueDay:Boolean=false) {
