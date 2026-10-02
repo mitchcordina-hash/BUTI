@@ -116,14 +116,14 @@ fun iconFor(s: Screen) = when(s) {
                 ) {
                     Icon(Icons.Default.Add, null)
                     Spacer(Modifier.width(6.dp))
-                    Text("Add expense")
+                    Text("Add bill")
                 }
                 OutlinedButton(
                     onClick={go(Screen.SPEND)},
                     modifier=Modifier.weight(1f).height(56.dp),
                     shape=RoundedCornerShape(18.dp)
                 ) {
-                    Text("Record spending")
+                    Text("Record spend")
                 }
             }
         }
