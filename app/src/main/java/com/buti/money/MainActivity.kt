@@ -38,7 +38,14 @@ class MainActivity : ComponentActivity() {
 class ButiViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = ButiDb.get(app).dao()
     val entries = dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    var payday by mutableIntStateOf(15)
+    private val prefs = app.getSharedPreferences("buti_settings", Context.MODE_PRIVATE)
+    var payday by mutableIntStateOf(prefs.getInt("payday", 15))
+        private set
+
+    fun setPayday(day: Int) {
+        payday = day
+        prefs.edit().putInt("payday", day).apply()
+    }
     fun add(name: String, amount: Double, type: String, dueDay: Int?, recurring: Boolean = false) = viewModelScope.launch { dao.insert(MoneyEntry(name=name, amount=amount, type=type, dueDay=dueDay, recurring=recurring)) }
     fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
     fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
@@ -108,7 +115,7 @@ fun iconFor(s: Screen) = when(s) {
 @Composable fun PaydayCard(vm:ButiViewModel) {
     var open by remember { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) { Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Column(Modifier.weight(1f)){ Text("Budget cycle", fontWeight=FontWeight.Bold); Text("Payday-to-payday • payday ${vm.payday}") }; TextButton(onClick={open=true}){Text("Change")} } }
-    if(open) PaydayDialog(vm.payday, { vm.payday=it; open=false }, {open=false})
+    if(open) PaydayDialog(vm.payday, { vm.setPayday(it); open=false }, {open=false})
 }
 
 @Composable fun PaydayDialog(current:Int, save:(Int)->Unit, close:()->Unit) {
