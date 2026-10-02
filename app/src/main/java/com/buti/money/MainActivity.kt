@@ -82,7 +82,9 @@ fun iconFor(s: Screen) = when(s) {
 @Composable fun Dashboard(vm: ButiViewModel, go: (Screen)->Unit) {
     val entries by vm.entries.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
-    val bills = entries.filter{it.type=="BILL"}.sumOf{it.amount}
+    val bills = entries.filter{
+        it.type=="BILL" && (!it.recurring || billInCurrentPayCycle(it.dueDay, vm.payday))
+    }.sumOf{it.amount}
     val spend = entries.filter{it.type=="SPEND"}.sumOf{it.amount}
     val saving = entries.filter{it.type=="SAVING"}.sumOf{it.amount}
     val available = income - bills - spend - saving
@@ -149,4 +151,21 @@ fun iconFor(s: Screen) = when(s) {
 }
 
 fun money(v:Double)=String.format(Locale.US,"%.2f",v)
+fun billInCurrentPayCycle(dueDay: Int?, payday: Int): Boolean {
+    if (dueDay == null) return false
+    val today = LocalDate.now()
+    val daysToPayday = daysUntilPayday(payday)
+    val nextPayday = today.plusDays(daysToPayday)
+    val cycleStart = nextPayday.minusMonths(1)
+    val thisMonthDue = YearMonth.from(today).atDay(
+        dueDay.coerceAtMost(YearMonth.from(today).lengthOfMonth())
+    )
+    val nextMonth = YearMonth.from(today).plusMonths(1)
+    val nextMonthDue = nextMonth.atDay(
+        dueDay.coerceAtMost(nextMonth.lengthOfMonth())
+    )
+    return (thisMonthDue >= cycleStart && thisMonthDue < nextPayday) ||
+           (nextMonthDue >= cycleStart && nextMonthDue < nextPayday)
+}
+
 fun daysUntilPayday(payday:Int):Long { val today=LocalDate.now(); var next=YearMonth.from(today).atDay(payday.coerceAtMost(YearMonth.from(today).lengthOfMonth())); if(!next.isAfter(today)) { val ym=YearMonth.from(today).plusMonths(1); next=ym.atDay(payday.coerceAtMost(ym.lengthOfMonth())) }; return ChronoUnit.DAYS.between(today,next) }
