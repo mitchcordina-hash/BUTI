@@ -17,15 +17,32 @@ data class MoneyEntry(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "savings_goals")
+data class SavingsGoal(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val targetAmount: Double,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Dao
 interface MoneyDao {
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
     @Insert suspend fun insert(entry: MoneyEntry)
     @Update suspend fun update(entry: MoneyEntry)
     @Delete suspend fun delete(entry: MoneyEntry)
+
+    @Query("SELECT * FROM savings_goals ORDER BY createdAt DESC")
+    fun observeSavingsGoals(): Flow<List<SavingsGoal>>
+
+    @Insert
+    suspend fun insertSavingsGoal(goal: SavingsGoal)
+
+    @Delete
+    suspend fun deleteSavingsGoal(goal: SavingsGoal)
 }
 
-@Database(entities = [MoneyEntry::class], version = 2, exportSchema = false)
+@Database(entities = [MoneyEntry::class, SavingsGoal::class], version = 3, exportSchema = false)
 abstract class ButiDb : RoomDatabase() {
     abstract fun dao(): MoneyDao
     companion object {
@@ -35,10 +52,23 @@ abstract class ButiDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS savings_goals (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        targetAmount REAL NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
         @Volatile private var INSTANCE: ButiDb? = null
         fun get(context: Context): ButiDb = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, ButiDb::class.java, "buti.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 .also { INSTANCE = it }
         }
