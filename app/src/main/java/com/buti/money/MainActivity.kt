@@ -129,7 +129,8 @@ fun iconFor(s: Screen) = when(s) {
     if(show) EntryDialog(type, dueDay, edit, onSave={name,amount,day,recurring -> if(edit==null) vm.add(name,amount,type,day,recurring) else vm.update(edit!!.copy(name=name, amount=amount, dueDay=day, recurring=recurring)); show=false }, onClose={show=false})
 }
 
-@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit) = Card(Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Column(Modifier.weight(1f)){Text(e.name,fontWeight=FontWeight.Bold); e.dueDay?.let{Text("Due day $it", style=MaterialTheme.typography.bodySmall)} }; Text("€${money(e.amount)}",fontWeight=FontWeight.Bold); IconButton(onClick=edit){Icon(Icons.Default.Edit,null)}; IconButton(onClick=delete){Icon(Icons.Default.Delete,null)} } }
+@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit) = Card(Modifier.fillMaxWidth()) { Row(Modifier.padding(14.dp).fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) { Column(Modifier.weight(1f)){Text(e.name,fontWeight=FontWeight.Bold); e.dueDay?.let{Text("Due day $it", style=MaterialTheme.typography.bodySmall)}
+            if(e.recurring) Text("↻ Monthly", style=MaterialTheme.typography.bodySmall) }; Text("€${money(e.amount)}",fontWeight=FontWeight.Bold); IconButton(onClick=edit){Icon(Icons.Default.Edit,null)}; IconButton(onClick=delete){Icon(Icons.Default.Delete,null)} } }
 
 @Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean)->Unit, onClose:()->Unit) {
     var name by remember(existing){mutableStateOf(existing?.name ?: "")}; var amount by remember(existing){mutableStateOf(existing?.amount?.toString() ?: "")}; var day by remember(existing){mutableStateOf(existing?.dueDay?.toString() ?: "")}
