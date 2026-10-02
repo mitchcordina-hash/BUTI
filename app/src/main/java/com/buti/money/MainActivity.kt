@@ -123,7 +123,7 @@ fun iconFor(s: Screen) = when(s) {
                     modifier=Modifier.weight(1f).height(56.dp),
                     shape=RoundedCornerShape(18.dp)
                 ) {
-                    Text("Record spend")
+                    Text("Add spend")
                 }
             }
         }
