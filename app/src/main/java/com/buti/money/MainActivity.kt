@@ -118,25 +118,6 @@ fun iconFor(s: Screen) = when(s) {
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
-        nextBill?.let { bill ->
-            item {
-                Card(
-                    modifier=Modifier.fillMaxWidth(),
-                    shape=RoundedCornerShape(18.dp)
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal=14.dp, vertical=10.dp),
-                        verticalAlignment=Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Next bill • ${bill.name}", fontWeight=FontWeight.Bold)
-                            Text("Due ${bill.dueDay}", style=MaterialTheme.typography.bodySmall)
-                        }
-                        Text("€${money(bill.amount)}", fontWeight=FontWeight.Bold)
-                    }
-                }
-            }
-        }
         item { Text("Quick actions", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) }
         item {
             Row(
@@ -158,6 +139,25 @@ fun iconFor(s: Screen) = when(s) {
                     shape=RoundedCornerShape(18.dp)
                 ) {
                     Text("Add spend")
+                }
+            }
+        }
+        nextBill?.let { bill ->
+            item {
+                Card(
+                    modifier=Modifier.fillMaxWidth(),
+                    shape=RoundedCornerShape(18.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal=14.dp, vertical=10.dp),
+                        verticalAlignment=Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Next bill • ${bill.name}", fontWeight=FontWeight.Bold)
+                            Text("Due ${bill.dueDay}", style=MaterialTheme.typography.bodySmall)
+                        }
+                        Text("€${money(bill.amount)}", fontWeight=FontWeight.Bold)
+                    }
                 }
             }
         }
