@@ -77,7 +77,7 @@ enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILL
                 Screen.INCOME -> EntryScreen(vm, "INCOME", "Income", "Add income")
                 Screen.BILLS -> EntryScreen(vm, "BILL", "Regular monthly expenses", "Add expense", true)
                 Screen.SPEND -> EntryScreen(vm, "SPEND", "Everyday spending", "Add spending")
-                Screen.SAVINGS -> EntryScreen(vm, "SAVING", "Savings", "Add savings")
+                Screen.SAVINGS -> EntryScreen(vm, "SAVING", "Savings", "Add to savings")
             }
         }
     }
