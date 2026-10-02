@@ -110,7 +110,12 @@ fun iconFor(s: Screen) = when(s) {
     }
 }
 
-@Composable fun HeroCard(label:String, amount:Double, subtitle:String) = Card(shape=RoundedCornerShape(24.dp), modifier=Modifier.fillMaxWidth()) { Column(Modifier.padding(24.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
+@Composable fun HeroCard(label:String, amount:Double, subtitle:String) = Card(
+    shape=RoundedCornerShape(24.dp),
+    modifier=Modifier.fillMaxWidth(),
+    colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer),
+    elevation=CardDefaults.cardElevation(defaultElevation=4.dp)
+) { Column(Modifier.padding(24.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
 @Composable fun MiniCard(label:String, amount:Double, modifier:Modifier=Modifier) = Card(modifier=modifier) { Column(Modifier.padding(16.dp)) { Text(label); Text("€${money(amount)}", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) } }
 
 @Composable fun PaydayCard(vm:ButiViewModel) {
