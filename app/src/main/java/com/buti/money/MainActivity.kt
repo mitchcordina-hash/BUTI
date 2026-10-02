@@ -98,7 +98,7 @@ fun iconFor(s: Screen) = when(s) {
     val available = income - bills - spend - saving
     val days = daysUntilPayday(vm.payday).coerceAtLeast(1)
     val daily = available / days
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=10.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item { Text("Your money. Made simple.", style=MaterialTheme.typography.titleMedium) }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
@@ -123,13 +123,13 @@ fun iconFor(s: Screen) = when(s) {
     modifier=Modifier.fillMaxWidth(),
     colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer),
     elevation=CardDefaults.cardElevation(defaultElevation=4.dp)
-) { Column(Modifier.padding(24.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
+) { Column(Modifier.padding(horizontal=20.dp, vertical=16.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
 @Composable fun MiniCard(label:String, amount:Double, modifier:Modifier=Modifier) = Card(
     modifier=modifier,
     shape=RoundedCornerShape(18.dp),
     colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer),
     elevation=CardDefaults.cardElevation(defaultElevation=2.dp)
-) { Column(Modifier.padding(16.dp)) { Text(label); Text("€${money(amount)}", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) } }
+) { Column(Modifier.padding(horizontal=14.dp, vertical=10.dp)) { Text(label); Text("€${money(amount)}", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) } }
 
 @Composable fun PaydayCard(vm:ButiViewModel) {
     var open by remember { mutableStateOf(false) }
