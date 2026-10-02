@@ -203,6 +203,7 @@ fun iconFor(s: Screen) = when(s) {
     val goals by vm.savingsGoals.collectAsState()
     val savings = entries.filter { it.type == "SAVING" }
     val totalSaved = savings.sumOf { it.amount }
+    var showGoalDialog by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -211,7 +212,22 @@ fun iconFor(s: Screen) = when(s) {
         Text("Savings", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text("Total saved €${money(totalSaved)}", style=MaterialTheme.typography.titleMedium)
 
-        Text("Savings goals", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment=Alignment.CenterVertically
+        ) {
+            Text(
+                "Savings goals",
+                style=MaterialTheme.typography.titleLarge,
+                fontWeight=FontWeight.Bold,
+                modifier=Modifier.weight(1f)
+            )
+            Button(onClick={showGoalDialog=true}) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(4.dp))
+                Text("New goal")
+            }
+        }
 
         if (goals.isEmpty()) {
             Text("No savings goals yet.")
@@ -237,6 +253,16 @@ fun iconFor(s: Screen) = when(s) {
             }
         }
 
+        if (showGoalDialog) {
+            SavingsGoalDialog(
+                onSave={name,target ->
+                    vm.addSavingsGoal(name,target)
+                    showGoalDialog=false
+                },
+                onClose={showGoalDialog=false}
+            )
+        }
+
         Text("Savings entries", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold)
 
         if (savings.isEmpty()) {
@@ -249,6 +275,44 @@ fun iconFor(s: Screen) = when(s) {
             }
         }
     }
+}
+
+@Composable
+fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
+    var name by remember { mutableStateOf("") }
+    var target by remember { mutableStateOf("") }
+    val targetAmount = target.toDoubleOrNull()
+    val valid = name.isNotBlank() && targetAmount != null && targetAmount > 0
+
+    AlertDialog(
+        onDismissRequest=onClose,
+        title={Text("New savings goal")},
+        text={
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value=name,
+                    onValueChange={name=it},
+                    label={Text("Goal name")},
+                    singleLine=true
+                )
+                OutlinedTextField(
+                    value=target,
+                    onValueChange={target=it.filter { c -> c.isDigit() || c=='.' }},
+                    label={Text("Target amount (€)")},
+                    singleLine=true
+                )
+            }
+        },
+        confirmButton={
+            Button(
+                enabled=valid,
+                onClick={onSave(name.trim(), targetAmount!!)}
+            ) { Text("Create goal") }
+        },
+        dismissButton={
+            TextButton(onClick=onClose) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable fun EntryScreen(vm:ButiViewModel, type:String, title:String, addLabel:String, dueDay:Boolean=false) {
