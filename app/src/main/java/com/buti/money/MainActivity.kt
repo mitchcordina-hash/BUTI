@@ -129,9 +129,8 @@ fun iconFor(s: Screen) = when(s) {
                         verticalAlignment=Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Next bill", style=MaterialTheme.typography.bodySmall)
-                            Text(bill.name, fontWeight=FontWeight.Bold)
-                            Text("Due day ${bill.dueDay}", style=MaterialTheme.typography.bodySmall)
+                            Text("Next bill • ${bill.name}", fontWeight=FontWeight.Bold)
+                            Text("Due ${bill.dueDay}", style=MaterialTheme.typography.bodySmall)
                         }
                         Text("€${money(bill.amount)}", fontWeight=FontWeight.Bold)
                     }
