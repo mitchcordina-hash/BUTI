@@ -156,7 +156,10 @@ fun iconFor(s: Screen) = when(s) {
 }
 
 @Composable fun EntryScreen(vm:ButiViewModel, type:String, title:String, addLabel:String, dueDay:Boolean=false) {
-    val all by vm.entries.collectAsState(); val list = all.filter{it.type==type}
+    val all by vm.entries.collectAsState()
+    val list = all.filter { it.type == type }.let { entries ->
+        if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
+    }
     var show by remember { mutableStateOf(false) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
