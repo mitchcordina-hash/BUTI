@@ -627,10 +627,52 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     val list = all.filter { it.type == type }.let { entries ->
         if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
     }
+
+    val categoryTotals = if (type == "SPEND") {
+        list.groupBy { it.category ?: "Other" }
+            .mapValues { (_, entries) -> entries.sumOf { it.amount } }
+            .toList()
+            .sortedByDescending { it.second }
+    } else {
+        emptyList()
+    }
+
     var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text("Total €${money(list.sumOf{it.amount})}", style=MaterialTheme.typography.titleMedium)
+
+        if (type == "SPEND" && categoryTotals.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Card(
+                modifier=Modifier.fillMaxWidth(),
+                shape=RoundedCornerShape(18.dp)
+            ) {
+                Column(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    verticalArrangement=Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        "Where your money goes",
+                        fontWeight=FontWeight.Bold
+                    )
+
+                    categoryTotals.forEach { (category, total) ->
+                        Row(Modifier.fillMaxWidth()) {
+                            Text(
+                                category,
+                                modifier=Modifier.weight(1f)
+                            )
+                            Text(
+                                "€${money(total)}",
+                                fontWeight=FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
         Button(onClick={show=true; edit=null}, modifier=Modifier.fillMaxWidth().height(56.dp)) { Icon(Icons.Default.Add,null); Spacer(Modifier.width(8.dp)); Text(addLabel) }
         Spacer(Modifier.height(8.dp))
