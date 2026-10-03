@@ -74,6 +74,7 @@ enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILL
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun ButiApp(vm: ButiViewModel = viewModel()) {
     var screen by remember { mutableStateOf(Screen.DASHBOARD) }
+    var quickAddScreen by remember { mutableStateOf<Screen?>(null) }
     Scaffold(
         topBar = { TopAppBar(title = { Text("BUTI", fontWeight = FontWeight.Black) }, actions = { Text("Payday ${vm.payday}", modifier=Modifier.padding(end=16.dp)) }) },
         bottomBar = {
@@ -86,10 +87,20 @@ enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILL
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
             when(screen) {
-                Screen.DASHBOARD -> Dashboard(vm) { screen = it }
+                Screen.DASHBOARD -> Dashboard(vm) { target, quickAdd ->
+                    quickAddScreen = if (quickAdd) target else null
+                    screen = target
+                }
                 Screen.INCOME -> EntryScreen(vm, "INCOME", "Income", "Add income")
-                Screen.BILLS -> EntryScreen(vm, "BILL", "Regular monthly expenses", "Add expense", true)
-                Screen.SPEND -> EntryScreen(vm, "SPEND", "Everyday spending", "Add spending")
+                Screen.BILLS -> EntryScreen(
+                    vm, "BILL", "Regular monthly expenses", "Add expense",
+                    dueDay=true,
+                    openAdd=quickAddScreen == Screen.BILLS
+                )
+                Screen.SPEND -> EntryScreen(
+                    vm, "SPEND", "Everyday spending", "Add spending",
+                    openAdd=quickAddScreen == Screen.SPEND
+                )
                 Screen.SAVINGS -> SavingsScreen(vm)
             }
         }
@@ -100,7 +111,7 @@ fun iconFor(s: Screen) = when(s) {
     Screen.DASHBOARD -> Icons.Default.Home; Screen.INCOME -> Icons.Default.AddCircle; Screen.BILLS -> Icons.Default.ReceiptLong; Screen.SPEND -> Icons.Default.ShoppingCart; Screen.SAVINGS -> Icons.Default.Savings
 }
 
-@Composable fun Dashboard(vm: ButiViewModel, go: (Screen)->Unit) {
+@Composable fun Dashboard(vm: ButiViewModel, go: (Screen, Boolean)->Unit) {
     val entries by vm.entries.collectAsState()
     val goals by vm.savingsGoals.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
@@ -180,7 +191,7 @@ fun iconFor(s: Screen) = when(s) {
                 horizontalArrangement=Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick={go(Screen.BILLS)},
+                    onClick={go(Screen.BILLS, true)},
                     modifier=Modifier.weight(1f).height(56.dp),
                     shape=RoundedCornerShape(18.dp)
                 ) {
@@ -189,7 +200,7 @@ fun iconFor(s: Screen) = when(s) {
                     Text("Add bill")
                 }
                 OutlinedButton(
-                    onClick={go(Screen.SPEND)},
+                    onClick={go(Screen.SPEND, true)},
                     modifier=Modifier.weight(1f).height(56.dp),
                     shape=RoundedCornerShape(18.dp)
                 ) {
@@ -586,12 +597,19 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     )
 }
 
-@Composable fun EntryScreen(vm:ButiViewModel, type:String, title:String, addLabel:String, dueDay:Boolean=false) {
+@Composable fun EntryScreen(
+    vm:ButiViewModel,
+    type:String,
+    title:String,
+    addLabel:String,
+    dueDay:Boolean=false,
+    openAdd:Boolean=false
+) {
     val all by vm.entries.collectAsState()
     val list = all.filter { it.type == type }.let { entries ->
         if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
     }
-    var show by remember { mutableStateOf(false) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
+    var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text("Total €${money(list.sumOf{it.amount})}", style=MaterialTheme.typography.titleMedium)
