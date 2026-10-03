@@ -698,6 +698,11 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             }
 
             Text(
+                "Last pay cycle €${money(previousCycleSpend)}",
+                style=MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
                 comparisonText,
                 style=MaterialTheme.typography.bodyMedium,
                 fontWeight=FontWeight.Medium
