@@ -207,6 +207,7 @@ fun iconFor(s: Screen) = when(s) {
     val totalSaved = savings.sumOf { it.amount }
     var showGoalDialog by remember { mutableStateOf(false) }
     var showSavingsDialog by remember { mutableStateOf(false) }
+    var editingSaving by remember { mutableStateOf<MoneyEntry?>(null) }
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -305,17 +306,32 @@ fun iconFor(s: Screen) = when(s) {
         if (showSavingsDialog) {
             SavingsDepositDialog(
                 goals=goals,
+                existing=editingSaving,
                 onSave={name,amount,goalId ->
-                    vm.add(
-                        name=name,
-                        amount=amount,
-                        type="SAVING",
-                        dueDay=null,
-                        savingsGoalId=goalId
-                    )
+                    if (editingSaving == null) {
+                        vm.add(
+                            name=name,
+                            amount=amount,
+                            type="SAVING",
+                            dueDay=null,
+                            savingsGoalId=goalId
+                        )
+                    } else {
+                        vm.update(
+                            editingSaving!!.copy(
+                                name=name,
+                                amount=amount,
+                                savingsGoalId=goalId
+                            )
+                        )
+                    }
+                    editingSaving=null
                     showSavingsDialog=false
                 },
-                onClose={showSavingsDialog=false}
+                onClose={
+                    editingSaving=null
+                    showSavingsDialog=false
+                }
             )
         }
 
@@ -324,7 +340,14 @@ fun iconFor(s: Screen) = when(s) {
         } else {
             LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 items(savings, key={it.id}) { entry ->
-                    EntryRow(entry, {}, {vm.delete(entry)})
+                    EntryRow(
+    entry,
+    {
+        editingSaving=entry
+        showSavingsDialog=true
+    },
+    {vm.delete(entry)}
+)
                 }
             }
         }
@@ -334,12 +357,13 @@ fun iconFor(s: Screen) = when(s) {
 @Composable
 fun SavingsDepositDialog(
     goals: List<SavingsGoal>,
+    existing: MoneyEntry? = null,
     onSave: (String, Double, Long?) -> Unit,
     onClose: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var selectedGoalId by remember { mutableStateOf<Long?>(null) }
+    var name by remember(existing) { mutableStateOf(existing?.name ?: "") }
+    var amount by remember(existing) { mutableStateOf(existing?.amount?.toString() ?: "") }
+    var selectedGoalId by remember(existing) { mutableStateOf(existing?.savingsGoalId) }
     var goalMenuOpen by remember { mutableStateOf(false) }
 
     val amountValue = amount.toDoubleOrNull()
