@@ -665,6 +665,12 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
 
     val cycleDifference = currentCycleSpend - previousCycleSpend
 
+    val biggestSpend = if (type == "SPEND") {
+        currentCycleList.maxByOrNull { it.amount }
+    } else {
+        null
+    }
+
     val categoryTotals = if (type == "SPEND") {
         currentCycleList.groupBy { it.category ?: "Other" }
             .mapValues { (_, entries) -> entries.sumOf { it.amount } }
@@ -734,6 +740,15 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                     style=MaterialTheme.typography.bodySmall
                 )
             }
+        }
+
+        if (type == "SPEND" && biggestSpend != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Biggest spend: ${biggestSpend.name} — €${money(biggestSpend.amount)}",
+                style=MaterialTheme.typography.bodyMedium,
+                fontWeight=FontWeight.Medium
+            )
         }
 
         if (type == "SPEND" && categoryTotals.isNotEmpty()) {
