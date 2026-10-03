@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -221,7 +223,10 @@ fun AffordabilityDialog(
                     value=amount,
                     onValueChange={amount=it.filter { c -> c.isDigit() || c=='.' }},
                     label={Text("Cost (€)")},
-                    singleLine=true
+                    singleLine=true,
+                    keyboardOptions=KeyboardOptions(
+                        keyboardType=KeyboardType.Decimal
+                    )
                 )
 
                 if (cost != null && cost > 0) {
