@@ -236,6 +236,16 @@ fun iconFor(s: Screen) = when(s) {
             Text("No savings goals yet.")
         } else {
             goals.forEach { goal ->
+                val goalSaved = savings
+                    .filter { it.savingsGoalId == goal.id }
+                    .sumOf { it.amount }
+
+                val progress = if (goal.targetAmount > 0) {
+                    (goalSaved / goal.targetAmount).coerceIn(0.0, 1.0)
+                } else 0.0
+
+                val percent = (progress * 100).toInt()
+
                 Card(
                     modifier=Modifier.fillMaxWidth(),
                     shape=RoundedCornerShape(18.dp)
@@ -246,7 +256,12 @@ fun iconFor(s: Screen) = when(s) {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(goal.name, fontWeight=FontWeight.Bold)
-                            Text("Target €${money(goal.targetAmount)}")
+                            Text("€${money(goalSaved)} of €${money(goal.targetAmount)} • $percent%")
+                            Spacer(Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress={progress.toFloat()},
+                                modifier=Modifier.fillMaxWidth()
+                            )
                         }
                         IconButton(onClick={vm.deleteSavingsGoal(goal)}) {
                             Icon(Icons.Default.Delete, null)
