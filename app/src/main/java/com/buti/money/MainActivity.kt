@@ -756,8 +756,24 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             e.dueDay?.let {
                 Text("Due day $it", style=MaterialTheme.typography.bodySmall)
             }
-            if (e.type == "SPEND" && e.category != null) {
-                Text(e.category, style=MaterialTheme.typography.bodySmall)
+            if (e.type == "SPEND") {
+                e.category?.let {
+                    Text(it, style=MaterialTheme.typography.bodySmall)
+                }
+
+                val entryDate = java.time.Instant
+                    .ofEpochMilli(e.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+
+                val dateText = entryDate.format(
+                    java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
+                )
+
+                Text(
+                    dateText,
+                    style=MaterialTheme.typography.bodySmall
+                )
             }
             if(e.recurring) {
                 Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
