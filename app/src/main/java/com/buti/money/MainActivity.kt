@@ -1096,5 +1096,6 @@ fun isInPreviousPayCycle(createdAt: Long, payday: Int): Boolean {
 
     return !entryDate.isBefore(previousCycleStart) &&
            entryDate.isBefore(currentCycleStart)
+}
 
 
