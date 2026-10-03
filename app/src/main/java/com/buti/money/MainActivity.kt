@@ -48,7 +48,9 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
         payday = day
         prefs.edit().putInt("payday", day).apply()
     }
-    fun add(name: String, amount: Double, type: String, dueDay: Int?, recurring: Boolean = false) = viewModelScope.launch { dao.insert(MoneyEntry(name=name, amount=amount, type=type, dueDay=dueDay, recurring=recurring)) }
+    fun add(name: String, amount: Double, type: String, dueDay: Int?, recurring: Boolean = false, savingsGoalId: Long? = null) = viewModelScope.launch {
+        dao.insert(MoneyEntry(name=name, amount=amount, type=type, dueDay=dueDay, recurring=recurring, savingsGoalId=savingsGoalId))
+    }
     fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
     fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
 
@@ -282,12 +284,16 @@ fun iconFor(s: Screen) = when(s) {
         }
 
         if (showSavingsDialog) {
-            EntryDialog(
-                type="SAVING",
-                askDueDay=false,
-                existing=null,
-                onSave={name,amount,_,_ ->
-                    vm.add(name, amount, "SAVING", null)
+            SavingsDepositDialog(
+                goals=goals,
+                onSave={name,amount,goalId ->
+                    vm.add(
+                        name=name,
+                        amount=amount,
+                        type="SAVING",
+                        dueDay=null,
+                        savingsGoalId=goalId
+                    )
                     showSavingsDialog=false
                 },
                 onClose={showSavingsDialog=false}
@@ -304,6 +310,90 @@ fun iconFor(s: Screen) = when(s) {
             }
         }
     }
+}
+
+@Composable
+fun SavingsDepositDialog(
+    goals: List<SavingsGoal>,
+    onSave: (String, Double, Long?) -> Unit,
+    onClose: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var selectedGoalId by remember { mutableStateOf<Long?>(null) }
+    var goalMenuOpen by remember { mutableStateOf(false) }
+
+    val amountValue = amount.toDoubleOrNull()
+    val selectedGoal = goals.firstOrNull { it.id == selectedGoalId }
+    val valid = name.isNotBlank() && amountValue != null && amountValue > 0
+
+    AlertDialog(
+        onDismissRequest=onClose,
+        title={Text("Add to savings")},
+        text={
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value=name,
+                    onValueChange={name=it},
+                    label={Text("Name")},
+                    singleLine=true
+                )
+
+                OutlinedTextField(
+                    value=amount,
+                    onValueChange={amount=it.filter { c -> c.isDigit() || c=='.' }},
+                    label={Text("Amount (€)")},
+                    singleLine=true
+                )
+
+                Box {
+                    OutlinedButton(
+                        onClick={goalMenuOpen=true},
+                        modifier=Modifier.fillMaxWidth()
+                    ) {
+                        Text(selectedGoal?.name ?: "Choose savings goal")
+                    }
+
+                    DropdownMenu(
+                        expanded=goalMenuOpen,
+                        onDismissRequest={goalMenuOpen=false}
+                    ) {
+                        DropdownMenuItem(
+                            text={Text("No goal")},
+                            onClick={
+                                selectedGoalId=null
+                                goalMenuOpen=false
+                            }
+                        )
+
+                        goals.forEach { goal ->
+                            DropdownMenuItem(
+                                text={Text(goal.name)},
+                                onClick={
+                                    selectedGoalId=goal.id
+                                    name=goal.name
+                                    goalMenuOpen=false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton={
+            Button(
+                enabled=valid,
+                onClick={onSave(name.trim(), amountValue!!, selectedGoalId)}
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton={
+            TextButton(onClick=onClose) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
