@@ -782,9 +782,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        Button(onClick={show=true; edit=null}, modifier=Modifier.fillMaxWidth().height(56.dp)) { Icon(Icons.Default.Add,null); Spacer(Modifier.width(8.dp)); Text(addLabel) }
-        Spacer(Modifier.height(8.dp))
+        
+        
+        
        Spacer(Modifier.height(12.dp))
 
 Button(
