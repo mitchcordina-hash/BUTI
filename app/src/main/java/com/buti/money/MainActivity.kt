@@ -674,6 +674,26 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         emptyList()
     }
 
+    val previousCategoryTotals = if (type == "SPEND") {
+        list.filter { isInPreviousPayCycle(it.createdAt, vm.payday) }
+            .groupBy { it.category ?: "Other" }
+            .mapValues { (_, entries) -> entries.sumOf { it.amount } }
+    } else {
+        emptyMap()
+    }
+
+    val biggestCategoryIncrease = if (type == "SPEND") {
+        categoryTotals
+            .map { (category, currentTotal) ->
+                val previousTotal = previousCategoryTotals[category] ?: 0.0
+                category to (currentTotal - previousTotal)
+            }
+            .filter { it.second > 0 }
+            .maxByOrNull { it.second }
+    } else {
+        null
+    }
+
     var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
@@ -707,6 +727,13 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                 style=MaterialTheme.typography.bodyMedium,
                 fontWeight=FontWeight.Medium
             )
+
+            biggestCategoryIncrease?.let { (category, increase) ->
+                Text(
+                    "$category is up €${money(increase)} from last pay cycle",
+                    style=MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         if (type == "SPEND" && categoryTotals.isNotEmpty()) {
