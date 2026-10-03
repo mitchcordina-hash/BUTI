@@ -836,7 +836,6 @@ if (list.isEmpty()) {
         }
     }
 }
-        else LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) { items(list, key={it.id}) { e -> EntryRow(e, {edit=e; show=true}, {vm.delete(e)}) } }
     }
     if(show) EntryDialog(
         type,
