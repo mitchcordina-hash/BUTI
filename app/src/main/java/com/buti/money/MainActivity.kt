@@ -50,8 +50,26 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
         payday = day
         prefs.edit().putInt("payday", day).apply()
     }
-    fun add(name: String, amount: Double, type: String, dueDay: Int?, recurring: Boolean = false, savingsGoalId: Long? = null) = viewModelScope.launch {
-        dao.insert(MoneyEntry(name=name, amount=amount, type=type, dueDay=dueDay, recurring=recurring, savingsGoalId=savingsGoalId))
+    fun add(
+        name: String,
+        amount: Double,
+        type: String,
+        dueDay: Int?,
+        recurring: Boolean = false,
+        savingsGoalId: Long? = null,
+        category: String? = null
+    ) = viewModelScope.launch {
+        dao.insert(
+            MoneyEntry(
+                name=name,
+                amount=amount,
+                type=type,
+                dueDay=dueDay,
+                recurring=recurring,
+                savingsGoalId=savingsGoalId,
+                category=category
+            )
+        )
     }
     fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
     fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
@@ -619,7 +637,35 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         if(list.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment=Alignment.Center){Text("Nothing here yet. Tap Add to start.")}
         else LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) { items(list, key={it.id}) { e -> EntryRow(e, {edit=e; show=true}, {vm.delete(e)}) } }
     }
-    if(show) EntryDialog(type, dueDay, edit, onSave={name,amount,day,recurring -> if(edit==null) vm.add(name,amount,type,day,recurring) else vm.update(edit!!.copy(name=name, amount=amount, dueDay=day, recurring=recurring)); show=false }, onClose={show=false})
+    if(show) EntryDialog(
+        type,
+        dueDay,
+        edit,
+        onSave={name,amount,day,recurring,category ->
+            if(edit==null) {
+                vm.add(
+                    name=name,
+                    amount=amount,
+                    type=type,
+                    dueDay=day,
+                    recurring=recurring,
+                    category=category
+                )
+            } else {
+                vm.update(
+                    edit!!.copy(
+                        name=name,
+                        amount=amount,
+                        dueDay=day,
+                        recurring=recurring,
+                        category=category
+                    )
+                )
+            }
+            show=false
+        },
+        onClose={show=false}
+    )
 }
 
 @Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit) {
@@ -681,11 +727,42 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     }
 }
 
-@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean)->Unit, onClose:()->Unit) {
+@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?)->Unit, onClose:()->Unit) {
     var name by remember(existing){mutableStateOf(existing?.name ?: "")}; var amount by remember(existing){mutableStateOf(existing?.amount?.toString() ?: "")}; var day by remember(existing){mutableStateOf(existing?.dueDay?.toString() ?: "")}
     var recurring by remember(existing){mutableStateOf(existing?.recurring ?: false)}
+    var category by remember(existing){mutableStateOf(existing?.category ?: "Other")}
+    var categoryMenuOpen by remember { mutableStateOf(false) }
+    val categories = listOf("Groceries", "Fuel", "Eating out", "Shopping", "Transport", "Entertainment", "Other")
     val valid = name.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0 && (!askDueDay || day.isBlank() || (day.toIntOrNull()?.let { it in 1..31 } == true))
-    AlertDialog(onDismissRequest=onClose, title={Text(if(existing==null) "Add ${type.lowercase()}" else "Edit item")}, text={ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){ OutlinedTextField(name,{name=it},label={Text("Name")},singleLine=true); OutlinedTextField(amount,{amount=it.filter{c->c.isDigit()||c=='.'}},label={Text("Amount (€)")},singleLine=true); if(askDueDay) {
+    AlertDialog(onDismissRequest=onClose, title={Text(if(existing==null) "Add ${type.lowercase()}" else "Edit item")}, text={ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){ OutlinedTextField(name,{name=it},label={Text("Name")},singleLine=true); OutlinedTextField(amount,{amount=it.filter{c->c.isDigit()||c=='.'}},label={Text("Amount (€)")},singleLine=true)
+
+        if (type == "SPEND") {
+            Box {
+                OutlinedButton(
+                    onClick={categoryMenuOpen=true},
+                    modifier=Modifier.fillMaxWidth()
+                ) {
+                    Text("Category: $category")
+                }
+
+                DropdownMenu(
+                    expanded=categoryMenuOpen,
+                    onDismissRequest={categoryMenuOpen=false}
+                ) {
+                    categories.forEach { option ->
+                        DropdownMenuItem(
+                            text={Text(option)},
+                            onClick={
+                                category=option
+                                categoryMenuOpen=false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if(askDueDay) {
             OutlinedTextField(day,{day=it.filter(Char::isDigit).take(2)},label={Text("Due day (optional)")},singleLine=true)
             Row(verticalAlignment=Alignment.CenterVertically) {
                 Checkbox(
@@ -694,7 +771,13 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                 )
                 Text("Repeat every month")
             }
-        } } }, confirmButton={Button(enabled=valid,onClick={onSave(name.trim(),amount.toDouble(),day.toIntOrNull(),recurring)}){Text("Save")}}, dismissButton={TextButton(onClick=onClose){Text("Cancel")}})
+        } } }, confirmButton={Button(enabled=valid,onClick={onSave(
+    name.trim(),
+    amount.toDouble(),
+    day.toIntOrNull(),
+    recurring,
+    if (type == "SPEND") category else null
+)}){Text("Save")}}, dismissButton={TextButton(onClick=onClose){Text("Cancel")}})
 }
 
 fun money(v:Double)=String.format(Locale.US,"%.2f",v)

@@ -15,6 +15,7 @@ data class MoneyEntry(
     val dueDay: Int? = null,
     val recurring: Boolean = false,
     val savingsGoalId: Long? = null,
+    val category: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -43,7 +44,7 @@ interface MoneyDao {
     suspend fun deleteSavingsGoal(goal: SavingsGoal)
 }
 
-@Database(entities = [MoneyEntry::class, SavingsGoal::class], version = 4, exportSchema = false)
+@Database(entities = [MoneyEntry::class, SavingsGoal::class], version = 5, exportSchema = false)
 abstract class ButiDb : RoomDatabase() {
     abstract fun dao(): MoneyDao
     companion object {
@@ -72,10 +73,16 @@ abstract class ButiDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE entries ADD COLUMN category TEXT")
+            }
+        }
+
         @Volatile private var INSTANCE: ButiDb? = null
         fun get(context: Context): ButiDb = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, ButiDb::class.java, "buti.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 .also { INSTANCE = it }
         }
