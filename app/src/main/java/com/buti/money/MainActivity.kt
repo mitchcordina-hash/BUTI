@@ -136,7 +136,12 @@ fun iconFor(s: Screen) = when(s) {
     val bills = entries.filter{
         it.type=="BILL" && (!it.recurring || billInCurrentPayCycle(it.dueDay, vm.payday))
     }.sumOf{it.amount}
-    val spend = entries.filter{it.type=="SPEND"}.sumOf{it.amount}
+    val spend = entries
+        .filter {
+            it.type == "SPEND" &&
+            isInCurrentPayCycle(it.createdAt, vm.payday)
+        }
+        .sumOf { it.amount }
     val saving = entries.filter{it.type=="SAVING"}.sumOf{it.amount}
 
     val dashboardGoal = goals.firstOrNull()
@@ -628,8 +633,14 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
     }
 
+    val currentCycleList = if (type == "SPEND") {
+        list.filter { isInCurrentPayCycle(it.createdAt, vm.payday) }
+    } else {
+        list
+    }
+
     val categoryTotals = if (type == "SPEND") {
-        list.groupBy { it.category ?: "Other" }
+        currentCycleList.groupBy { it.category ?: "Other" }
             .mapValues { (_, entries) -> entries.sumOf { it.amount } }
             .toList()
             .sortedByDescending { it.second }
@@ -640,7 +651,13 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
-        Text("Total €${money(list.sumOf{it.amount})}", style=MaterialTheme.typography.titleMedium)
+        Text(
+            if (type == "SPEND")
+                "This pay cycle €${money(currentCycleList.sumOf { it.amount })}"
+            else
+                "Total €${money(list.sumOf { it.amount })}",
+            style=MaterialTheme.typography.titleMedium
+        )
 
         if (type == "SPEND" && categoryTotals.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
@@ -844,3 +861,16 @@ fun billInCurrentPayCycle(dueDay: Int?, payday: Int): Boolean {
 }
 
 fun daysUntilPayday(payday:Int):Long { val today=LocalDate.now(); var next=YearMonth.from(today).atDay(payday.coerceAtMost(YearMonth.from(today).lengthOfMonth())); if(!next.isAfter(today)) { val ym=YearMonth.from(today).plusMonths(1); next=ym.atDay(payday.coerceAtMost(ym.lengthOfMonth())) }; return ChronoUnit.DAYS.between(today,next) }
+
+fun isInCurrentPayCycle(createdAt: Long, payday: Int): Boolean {
+    val today = LocalDate.now()
+    val nextPayday = today.plusDays(daysUntilPayday(payday))
+    val cycleStart = nextPayday.minusMonths(1)
+
+    val entryDate = java.time.Instant
+        .ofEpochMilli(createdAt)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate()
+
+    return !entryDate.isBefore(cycleStart) && entryDate.isBefore(nextPayday)
+}
