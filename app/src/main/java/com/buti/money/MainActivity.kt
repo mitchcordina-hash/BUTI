@@ -258,7 +258,7 @@ fun iconFor(s: Screen) = when(s) {
                         Column(Modifier.weight(1f)) {
                             Text(goal.name, fontWeight=FontWeight.Bold)
                             Text(
-    "€${money(goalSaved)} of €${money(goal.targetAmount)} • $percent%",
+    "€${money(goalSaved)} / €${money(goal.targetAmount)} • $percent%",
     style=MaterialTheme.typography.bodyMedium,
     maxLines=1
 )
