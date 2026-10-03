@@ -691,6 +691,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             e.dueDay?.let {
                 Text("Due day $it", style=MaterialTheme.typography.bodySmall)
             }
+            if (e.type == "SPEND" && e.category != null) {
+                Text(e.category, style=MaterialTheme.typography.bodySmall)
+            }
             if(e.recurring) {
                 Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
             }
