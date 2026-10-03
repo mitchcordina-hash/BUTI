@@ -102,12 +102,21 @@ fun iconFor(s: Screen) = when(s) {
 
 @Composable fun Dashboard(vm: ButiViewModel, go: (Screen)->Unit) {
     val entries by vm.entries.collectAsState()
+    val goals by vm.savingsGoals.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
     val bills = entries.filter{
         it.type=="BILL" && (!it.recurring || billInCurrentPayCycle(it.dueDay, vm.payday))
     }.sumOf{it.amount}
     val spend = entries.filter{it.type=="SPEND"}.sumOf{it.amount}
     val saving = entries.filter{it.type=="SAVING"}.sumOf{it.amount}
+
+    val dashboardGoal = goals.firstOrNull()
+    val dashboardGoalSaved = dashboardGoal?.let { goal ->
+        entries.filter {
+            it.type == "SAVING" && it.savingsGoalId == goal.id
+        }.sumOf { it.amount }
+    } ?: 0.0
+
     val today = LocalDate.now()
     val nextBill = entries
         .filter { it.type == "BILL" && it.dueDay != null }
@@ -133,6 +142,37 @@ fun iconFor(s: Screen) = when(s) {
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
+
+        dashboardGoal?.let { goal ->
+            item {
+                val progress = if (goal.targetAmount > 0) {
+                    (dashboardGoalSaved / goal.targetAmount).coerceIn(0.0, 1.0)
+                } else 0.0
+                val percent = (progress * 100).toInt()
+
+                Card(
+                    modifier=Modifier.fillMaxWidth(),
+                    shape=RoundedCornerShape(18.dp)
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp)
+                    ) {
+                        Text("Savings goal", style=MaterialTheme.typography.bodySmall)
+                        Text(goal.name, fontWeight=FontWeight.Bold)
+                        Text(
+                            "€${money(dashboardGoalSaved)} / €${money(goal.targetAmount)} • $percent%",
+                            style=MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress={progress.toFloat()},
+                            modifier=Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+
         item { Text("Quick actions", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) }
         item {
             Row(
