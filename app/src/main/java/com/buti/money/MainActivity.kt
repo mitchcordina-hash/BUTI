@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -531,7 +533,10 @@ fun SavingsDepositDialog(
                     value=amount,
                     onValueChange={amount=it.filter { c -> c.isDigit() || c=='.' }},
                     label={Text("Amount (€)")},
-                    singleLine=true
+                    singleLine=true,
+                    keyboardOptions=KeyboardOptions(
+                        keyboardType=KeyboardType.Decimal
+                    )
                 )
 
                 Box {
@@ -848,7 +853,15 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         (amount.toDoubleOrNull() ?: 0.0) > 0 &&
         (!askDueDay || day.isBlank() || (day.toIntOrNull()?.let { it in 1..31 } == true)) &&
         spendDateValid
-    AlertDialog(onDismissRequest=onClose, title={Text(if(existing==null) "Add ${type.lowercase()}" else "Edit item")}, text={ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){ OutlinedTextField(name,{name=it},label={Text("Name")},singleLine=true); OutlinedTextField(amount,{amount=it.filter{c->c.isDigit()||c=='.'}},label={Text("Amount (€)")},singleLine=true)
+    AlertDialog(onDismissRequest=onClose, title={Text(if(existing==null) "Add ${type.lowercase()}" else "Edit item")}, text={ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){ OutlinedTextField(name,{name=it},label={Text("Name")},singleLine=true); OutlinedTextField(
+    value=amount,
+    onValueChange={amount=it.filter{c->c.isDigit()||c=='.'}},
+    label={Text("Amount (€)")},
+    singleLine=true,
+    keyboardOptions=KeyboardOptions(
+        keyboardType=KeyboardType.Decimal
+    )
+)
 
         if (type == "SPEND") {
             Box {
