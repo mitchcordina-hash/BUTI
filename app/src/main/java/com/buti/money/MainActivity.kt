@@ -204,6 +204,7 @@ fun iconFor(s: Screen) = when(s) {
     val savings = entries.filter { it.type == "SAVING" }
     val totalSaved = savings.sumOf { it.amount }
     var showGoalDialog by remember { mutableStateOf(false) }
+    var showSavingsDialog by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -263,7 +264,35 @@ fun iconFor(s: Screen) = when(s) {
             )
         }
 
-        Text("Savings entries", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment=Alignment.CenterVertically
+        ) {
+            Text(
+                "Savings entries",
+                style=MaterialTheme.typography.titleLarge,
+                fontWeight=FontWeight.Bold,
+                modifier=Modifier.weight(1f)
+            )
+            Button(onClick={showSavingsDialog=true}) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(4.dp))
+                Text("Add")
+            }
+        }
+
+        if (showSavingsDialog) {
+            EntryDialog(
+                type="SAVING",
+                askDueDay=false,
+                existing=null,
+                onSave={name,amount,_,_ ->
+                    vm.add(name, amount, "SAVING", null)
+                    showSavingsDialog=false
+                },
+                onClose={showSavingsDialog=false}
+            )
+        }
 
         if (savings.isEmpty()) {
             Text("No savings added yet.")
