@@ -874,6 +874,14 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                     }
                 }
             }
+
+            OutlinedTextField(
+                value=spendDate,
+                onValueChange={spendDate=it.take(10)},
+                label={Text("Date (YYYY-MM-DD)")},
+                singleLine=true,
+                modifier=Modifier.fillMaxWidth()
+            )
         }
 
         if(askDueDay) {
