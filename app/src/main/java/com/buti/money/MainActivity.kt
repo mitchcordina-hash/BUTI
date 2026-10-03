@@ -124,6 +124,8 @@ fun iconFor(s: Screen) = when(s) {
     val available = income - bills - spend - saving
     val days = daysUntilPayday(vm.payday).coerceAtLeast(1)
     val daily = available / days
+    var showAffordability by remember { mutableStateOf(false) }
+
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=10.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item { Text("Your money. Made simple.", style=MaterialTheme.typography.titleMedium) }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
@@ -153,6 +155,15 @@ fun iconFor(s: Screen) = when(s) {
                 }
             }
         }
+        item {
+            OutlinedButton(
+                onClick={showAffordability=true},
+                modifier=Modifier.fillMaxWidth().height(48.dp),
+                shape=RoundedCornerShape(18.dp)
+            ) {
+                Text("Can I afford this?")
+            }
+        }
         nextBill?.let { bill ->
             item {
                 Card(
@@ -174,6 +185,14 @@ fun iconFor(s: Screen) = when(s) {
         }
         item { PaydayCard(vm) }
     }
+
+    if (showAffordability) {
+        AffordabilityDialog(
+            available=available,
+            days=days,
+            onClose={showAffordability=false}
+        )
+    }
 }
 
 @Composable fun HeroCard(label:String, amount:Double, subtitle:String) = Card(
@@ -182,6 +201,51 @@ fun iconFor(s: Screen) = when(s) {
     colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer),
     elevation=CardDefaults.cardElevation(defaultElevation=4.dp)
 ) { Column(Modifier.padding(horizontal=20.dp, vertical=16.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
+@Composable
+fun AffordabilityDialog(
+    available: Double,
+    days: Int,
+    onClose: () -> Unit
+) {
+    var amount by remember { mutableStateOf("") }
+    val cost = amount.toDoubleOrNull()
+    val remaining = if (cost != null) available - cost else available
+    val newDaily = remaining / days.coerceAtLeast(1)
+
+    AlertDialog(
+        onDismissRequest=onClose,
+        title={Text("Can I afford this?")},
+        text={
+            Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value=amount,
+                    onValueChange={amount=it.filter { c -> c.isDigit() || c=='.' }},
+                    label={Text("Cost (€)")},
+                    singleLine=true
+                )
+
+                if (cost != null && cost > 0) {
+                    Text("Money left: €${money(remaining)}")
+                    Text("New daily budget: €${money(newDaily)}")
+
+                    Text(
+                        if (remaining >= 0)
+                            "This fits within your current available money."
+                        else
+                            "This is €${money(-remaining)} over your available money.",
+                        fontWeight=FontWeight.Bold
+                    )
+                }
+            }
+        },
+        confirmButton={
+            TextButton(onClick=onClose) {
+                Text("Done")
+            }
+        }
+    )
+}
+
 @Composable fun MiniCard(label:String, amount:Double, modifier:Modifier=Modifier) = Card(
     modifier=modifier,
     shape=RoundedCornerShape(18.dp),
