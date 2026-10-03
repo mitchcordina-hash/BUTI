@@ -639,6 +639,12 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         list
     }
 
+    val previousSpendList = if (type == "SPEND") {
+        list.filterNot { isInCurrentPayCycle(it.createdAt, vm.payday) }
+    } else {
+        emptyList()
+    }
+
     val categoryTotals = if (type == "SPEND") {
         currentCycleList.groupBy { it.category ?: "Other" }
             .mapValues { (_, entries) -> entries.sumOf { it.amount } }
