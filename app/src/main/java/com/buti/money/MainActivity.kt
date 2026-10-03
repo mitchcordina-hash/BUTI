@@ -204,7 +204,7 @@ fun iconFor(s: Screen) = when(s) {
 @Composable
 fun AffordabilityDialog(
     available: Double,
-    days: Int,
+    days: Long,
     onClose: () -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
