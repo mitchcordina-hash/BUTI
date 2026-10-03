@@ -650,6 +650,21 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         emptyList()
     }
 
+    val previousCycleSpend = if (type == "SPEND") {
+        list.filter { isInPreviousPayCycle(it.createdAt, vm.payday) }
+            .sumOf { it.amount }
+    } else {
+        0.0
+    }
+
+    val currentCycleSpend = if (type == "SPEND") {
+        currentCycleList.sumOf { it.amount }
+    } else {
+        0.0
+    }
+
+    val cycleDifference = currentCycleSpend - previousCycleSpend
+
     val categoryTotals = if (type == "SPEND") {
         currentCycleList.groupBy { it.category ?: "Other" }
             .mapValues { (_, entries) -> entries.sumOf { it.amount } }
@@ -669,6 +684,25 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                 "Total €${money(list.sumOf { it.amount })}",
             style=MaterialTheme.typography.titleMedium
         )
+
+        if (type == "SPEND" && previousCycleSpend > 0) {
+            Spacer(Modifier.height(6.dp))
+
+            val comparisonText = when {
+                cycleDifference > 0 ->
+                    "€${money(cycleDifference)} more than last pay cycle"
+                cycleDifference < 0 ->
+                    "€${money(-cycleDifference)} less than last pay cycle"
+                else ->
+                    "Same spending as last pay cycle"
+            }
+
+            Text(
+                comparisonText,
+                style=MaterialTheme.typography.bodyMedium,
+                fontWeight=FontWeight.Medium
+            )
+        }
 
         if (type == "SPEND" && categoryTotals.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
@@ -950,4 +984,20 @@ fun isInCurrentPayCycle(createdAt: Long, payday: Int): Boolean {
         .toLocalDate()
 
     return !entryDate.isBefore(cycleStart) && entryDate.isBefore(nextPayday)
+}
+
+fun isInPreviousPayCycle(createdAt: Long, payday: Int): Boolean {
+    val today = LocalDate.now()
+    val nextPayday = today.plusDays(daysUntilPayday(payday))
+
+    val currentCycleStart = nextPayday.minusMonths(1)
+    val previousCycleStart = currentCycleStart.minusMonths(1)
+
+    val entryDate = java.time.Instant
+        .ofEpochMilli(createdAt)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate()
+
+    return !entryDate.isBefore(previousCycleStart) &&
+           entryDate.isBefore(currentCycleStart)
 }
