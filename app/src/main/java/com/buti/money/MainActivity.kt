@@ -57,7 +57,8 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
         dueDay: Int?,
         recurring: Boolean = false,
         savingsGoalId: Long? = null,
-        category: String? = null
+        category: String? = null,
+        createdAt: Long? = null
     ) = viewModelScope.launch {
         dao.insert(
             MoneyEntry(
@@ -67,7 +68,8 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
                 dueDay=dueDay,
                 recurring=recurring,
                 savingsGoalId=savingsGoalId,
-                category=category
+                category=category,
+                createdAt=createdAt ?: System.currentTimeMillis()
             )
         )
     }
@@ -706,7 +708,7 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         type,
         dueDay,
         edit,
-        onSave={name,amount,day,recurring,category ->
+        onSave={name,amount,day,recurring,category,transactionDate ->
             if(edit==null) {
                 vm.add(
                     name=name,
@@ -714,7 +716,8 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                     type=type,
                     dueDay=day,
                     recurring=recurring,
-                    category=category
+                    category=category,
+                    createdAt=transactionDate
                 )
             } else {
                 vm.update(
@@ -723,7 +726,8 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                         amount=amount,
                         dueDay=day,
                         recurring=recurring,
-                        category=category
+                        category=category,
+                        createdAt=transactionDate ?: edit!!.createdAt
                     )
                 )
             }
@@ -811,13 +815,39 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     }
 }
 
-@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?)->Unit, onClose:()->Unit) {
+@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?,Long?)->Unit, onClose:()->Unit) {
     var name by remember(existing){mutableStateOf(existing?.name ?: "")}; var amount by remember(existing){mutableStateOf(existing?.amount?.toString() ?: "")}; var day by remember(existing){mutableStateOf(existing?.dueDay?.toString() ?: "")}
     var recurring by remember(existing){mutableStateOf(existing?.recurring ?: false)}
     var category by remember(existing){mutableStateOf(existing?.category ?: "Other")}
     var categoryMenuOpen by remember { mutableStateOf(false) }
+
+    var spendDate by remember(existing) {
+        mutableStateOf(
+            existing?.let {
+                java.time.Instant.ofEpochMilli(it.createdAt)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toLocalDate()
+                    .toString()
+            } ?: LocalDate.now().toString()
+        )
+    }
+
     val categories = listOf("Groceries", "Fuel", "Eating out", "Shopping", "Transport", "Entertainment", "Other")
-    val valid = name.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0 && (!askDueDay || day.isBlank() || (day.toIntOrNull()?.let { it in 1..31 } == true))
+    val spendDateValid = if (type == "SPEND") {
+        try {
+            LocalDate.parse(spendDate)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    } else {
+        true
+    }
+
+    val valid = name.isNotBlank() &&
+        (amount.toDoubleOrNull() ?: 0.0) > 0 &&
+        (!askDueDay || day.isBlank() || (day.toIntOrNull()?.let { it in 1..31 } == true)) &&
+        spendDateValid
     AlertDialog(onDismissRequest=onClose, title={Text(if(existing==null) "Add ${type.lowercase()}" else "Edit item")}, text={ Column(verticalArrangement=Arrangement.spacedBy(8.dp)){ OutlinedTextField(name,{name=it},label={Text("Name")},singleLine=true); OutlinedTextField(amount,{amount=it.filter{c->c.isDigit()||c=='.'}},label={Text("Amount (€)")},singleLine=true)
 
         if (type == "SPEND") {
@@ -860,7 +890,13 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     amount.toDouble(),
     day.toIntOrNull(),
     recurring,
-    if (type == "SPEND") category else null
+    if (type == "SPEND") category else null,
+    if (type == "SPEND") {
+        LocalDate.parse(spendDate)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+    } else null
 )}){Text("Save")}}, dismissButton={TextButton(onClick=onClose){Text("Cancel")}})
 }
 
