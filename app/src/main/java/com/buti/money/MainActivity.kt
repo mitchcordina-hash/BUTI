@@ -256,7 +256,11 @@ fun iconFor(s: Screen) = when(s) {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(goal.name, fontWeight=FontWeight.Bold)
-                            Text("€${money(goalSaved)} of €${money(goal.targetAmount)} • $percent%")
+                            Text(
+    "€${money(goalSaved)} of €${money(goal.targetAmount)} • $percent%",
+    style=MaterialTheme.typography.bodyMedium,
+    maxLines=1
+)
                             Spacer(Modifier.height(6.dp))
                             LinearProgressIndicator(
                                 progress={progress.toFloat()},
@@ -471,18 +475,40 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     var confirmDelete by remember { mutableStateOf(false) }
 
     Card(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.padding(14.dp).fillMaxWidth(),
-            verticalAlignment=Alignment.CenterVertically
+        Column(
+            Modifier.padding(horizontal=14.dp, vertical=10.dp).fillMaxWidth()
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(e.name, fontWeight=FontWeight.Bold)
-                e.dueDay?.let { Text("Due day $it", style=MaterialTheme.typography.bodySmall) }
-                if(e.recurring) Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment=Alignment.CenterVertically
+            ) {
+                Text(
+                    e.name,
+                    fontWeight=FontWeight.Bold,
+                    modifier=Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("€${money(e.amount)}", fontWeight=FontWeight.Bold)
             }
-            Text("€${money(e.amount)}", fontWeight=FontWeight.Bold)
-            IconButton(onClick=edit) { Icon(Icons.Default.Edit, null) }
-            IconButton(onClick={confirmDelete=true}) { Icon(Icons.Default.Delete, null) }
+
+            e.dueDay?.let {
+                Text("Due day $it", style=MaterialTheme.typography.bodySmall)
+            }
+            if(e.recurring) {
+                Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
+            }
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement=Arrangement.End
+            ) {
+                IconButton(onClick=edit) {
+                    Icon(Icons.Default.Edit, contentDescription="Edit")
+                }
+                IconButton(onClick={confirmDelete=true}) {
+                    Icon(Icons.Default.Delete, contentDescription="Delete")
+                }
+            }
         }
     }
 
