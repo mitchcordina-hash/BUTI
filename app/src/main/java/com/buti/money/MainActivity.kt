@@ -730,7 +730,7 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
 
             Text(
                 comparisonText,
-                style=MaterialTheme.typography.bodyMedium,
+                style=MaterialTheme.typography.bodySmall,
                 fontWeight=FontWeight.Medium
             )
 
