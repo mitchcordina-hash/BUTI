@@ -2,7 +2,7 @@
 
 A simple Android money manager built around your payday. Track income, bills, everyday spending and savings, and see how much you can safely spend until your next payday.
 
-## Included in v0.1
+## What BUTI does
 - Payday-to-payday budget cycle
 - Dashboard with "Safe to Spend Today"
 - Income: add, edit, delete
