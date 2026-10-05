@@ -714,12 +714,14 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
         Text(
                    )
 
-        if (type == "SPEND") {
-                "This pay cycle €${money(currentCycleList.sumOf { it.amount })}"
-            else
-                "Total €${money(list.sumOf { it.amount })}",
-            style=MaterialTheme.typography.titleMedium
-        )if (type == "SPEND") {
+Text(
+    text = if (type == "SPEND") {
+        "This pay cycle €${money(currentCycleList.sumOf { it.amount })}"
+    } else {
+        "Total €${money(list.sumOf { it.amount })}"
+    },
+    style = MaterialTheme.typography.titleMedium
+)
     Spacer(Modifier.height(8.dp))
 
     val budgetRemaining = vm.spendingBudget - currentCycleSpend
