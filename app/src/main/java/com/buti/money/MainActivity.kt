@@ -45,7 +45,15 @@ class ButiViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("buti_settings", Context.MODE_PRIVATE)
     var payday by mutableIntStateOf(prefs.getInt("payday", 15))
         private set
+var spendingBudget by mutableStateOf(
+    prefs.getFloat("spending_budget", 500f).toDouble()
+)
+    private set
 
+fun saveSpendingBudget(amount: Double) {
+    spendingBudget = amount
+    prefs.edit().putFloat("spending_budget", amount.toFloat()).apply()
+}
     fun savePayday(day: Int) {
         payday = day
         prefs.edit().putInt("payday", day).apply()
