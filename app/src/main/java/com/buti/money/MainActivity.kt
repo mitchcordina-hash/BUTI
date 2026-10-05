@@ -1029,16 +1029,11 @@ if (list.isEmpty()) {
         Text("Nothing here yet. Tap Add to start.")
     }
 } else {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(
-            items = list,
-            key = { it.id }
-        ) { e ->
+    Column(
+    modifier = Modifier.fillMaxWidth(),
+    verticalArrangement = Arrangement.spacedBy(8.dp)
+) {
+list.forEach { e ->
             EntryRow(
                 e,
                 {
