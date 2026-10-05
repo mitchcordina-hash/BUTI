@@ -849,7 +849,7 @@ val dailyBudgetRemaining = if (budgetRemaining > 0) {
     )
 Text(
     "€${money(dailyBudgetRemaining)} per day until payday",
-    style = MaterialTheme.typography.bodySmall,
+    style = MaterialTheme.typography.titleLarge,
     fontWeight = FontWeight.Medium
 )
 
