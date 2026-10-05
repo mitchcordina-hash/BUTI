@@ -712,7 +712,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text(
-            if (type == "SPEND")
+                   )
+
+        if (type == "SPEND") {
                 "This pay cycle €${money(currentCycleList.sumOf { it.amount })}"
             else
                 "Total €${money(list.sumOf { it.amount })}",
