@@ -847,7 +847,11 @@ val dailyBudgetRemaining = if (budgetRemaining > 0) {
         "€${money(currentCycleSpend)} spent of €${money(vm.spendingBudget)}",
         style = MaterialTheme.typography.bodySmall
     )
-
+Text(
+    "€${money(dailyBudgetRemaining)} per day until payday",
+    style = MaterialTheme.typography.bodySmall,
+    fontWeight = FontWeight.Medium
+)
     Text(
         if (budgetRemaining >= 0) {
             "€${money(budgetRemaining)} left"
