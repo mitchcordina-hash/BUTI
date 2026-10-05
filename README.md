@@ -1,25 +1,74 @@
 # BUTI v1.1.1
 
-A simple Android money manager built around your payday. Track income, bills, everyday spending and savings, and see how much you can safely spend until your next payday.
+**Your money. Made simple.**
 
-## What BUTI does
-- Payday-to-payday budget cycle
-- Dashboard with "Safe to Spend Today"
-- Income: add, edit, delete
-- Regular monthly expenses: add, edit, delete, optional due day
-- Everyday spending: add, edit, delete
-- Savings: add, edit, delete
-- Local Room database
-- Native Kotlin + Jetpack Compose
+BUTI is a simple Android money manager built around one idea:
 
-## Build on GitHub (no Android Studio needed)
-This project includes `.github/workflows/build-apk.yml`.
+**How much can I safely spend before my next payday?**
 
-1. Put the project files in a GitHub repository.
-2. Open the repository's **Actions** tab.
-3. Select **Build BUTI APK**.
-4. Tap **Run workflow** and confirm.
-5. When the run finishes, open it and download the artifact named **BUTI-v0.1-debug-apk**.
-6. Unzip that artifact to get `app-debug.apk`, then install it on your Android device.
+Instead of complicated monthly budgets, BUTI works from payday to payday and gives you a clear picture of your income, bills, everyday spending and savings.
 
-The workflow also builds automatically when project files are pushed to the main/master branch.
+## 💰 What BUTI does
+
+- Payday-to-payday budgeting
+- Safe to Spend Today calculation
+- Daily spending budget
+- Income tracking
+- Regular bill tracking
+- Everyday spending tracking
+- Spending categories
+- Spending history and insights
+- Previous pay-cycle comparison
+- Savings tracking
+- Savings goals
+- Add, edit and delete transactions
+- Local on-device database
+- Your financial data stays on your device
+
+## 📱 Download BUTI
+
+The latest stable version is:
+
+**BUTI v1.1.1**
+
+Download **app-release.apk** from the **Releases** section of this repository.
+
+On Android:
+
+1. Download `app-release.apk`.
+2. Open the downloaded file.
+3. Android may ask you to allow installation from your browser or file manager.
+4. Tap **Install**.
+5. Open BUTI.
+
+When updating an existing BUTI installation, your existing data is retained.
+
+## 🛠 Built with
+
+- Kotlin
+- Jetpack Compose
+- Room database
+- GitHub Actions
+- Android
+
+## 🔒 Privacy
+
+BUTI is designed as a local-first money manager.
+
+Your income, bills, spending and savings information is stored locally on your Android device.
+
+## 🚀 Current release
+
+**v1.1.1 — Stable**
+
+The current release includes the redesigned BUTI dashboard, payday budgeting, spending categories, transaction dates, spending insights, savings goals and the signed Android release APK.
+
+## About BUTI
+
+BUTI is designed to make everyday budgeting less complicated.
+
+No spreadsheets. No financial jargon.
+
+Just a simple answer to the question:
+
+**“How much can I safely spend?”**
