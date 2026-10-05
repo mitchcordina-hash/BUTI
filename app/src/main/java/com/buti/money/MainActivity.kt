@@ -734,12 +734,30 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                 fontWeight=FontWeight.Medium
             )
 
-            biggestCategoryIncrease?.let { (category, increase) ->
-                Text(
-                    "$category is up €${money(increase)} from last pay cycle",
-                    style=MaterialTheme.typography.bodySmall
-                )
-            }
+       biggestCategoryIncrease?.let { (category, increase) ->
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                "Spending insight",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                "$category is up €${money(increase)} from last pay cycle",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
         }
 
 if (type == "SPEND" && biggestSpend != null) {
