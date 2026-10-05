@@ -822,7 +822,13 @@ if (type == "SPEND") {
     Spacer(Modifier.height(8.dp))
 
     val budgetRemaining = vm.spendingBudget - currentCycleSpend
+val daysLeft = daysUntilPayday(vm.payday).coerceAtLeast(1)
 
+val dailyBudgetRemaining = if (budgetRemaining > 0) {
+    budgetRemaining / daysLeft
+} else {
+    0.0
+}
     val budgetProgress = if (vm.spendingBudget > 0) {
         (currentCycleSpend / vm.spendingBudget)
             .toFloat()
@@ -851,7 +857,12 @@ if (type == "SPEND") {
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Bold
     )
-
+if (budgetRemaining > 0) {
+    Text(
+        "About €${money(dailyBudgetRemaining)} a day until payday",
+        style = MaterialTheme.typography.bodySmall
+    )
+}
     LinearProgressIndicator(
         progress = { budgetProgress },
         modifier = Modifier
