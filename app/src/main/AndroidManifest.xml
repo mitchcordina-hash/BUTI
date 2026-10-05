@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:theme="@style/Theme.Buti" android:label="BUTI" android:allowBackup="true" android:supportsRtl="true">
+    <application
+    android:theme="@style/Theme.Buti"
+    android:label="BUTI"
+    android:icon="@drawable/buti_icon"
+    android:roundIcon="@drawable/buti_icon"
+    android:allowBackup="true"
+    android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
