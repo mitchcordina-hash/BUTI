@@ -814,7 +814,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                 .height(6.dp)
         )
     }
-}
+}            }
+        }
+    }
             }
         }
 
