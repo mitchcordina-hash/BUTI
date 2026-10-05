@@ -742,26 +742,37 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             }
         }
 
-      if (type == "SPEND" && biggestSpend != null) {
+if (type == "SPEND" && biggestSpend != null) {
     Spacer(Modifier.height(6.dp))
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
-            "Biggest spend: ${biggestSpend.name}",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
+            "Biggest spend",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium
         )
 
-        Text(
-            "€${money(biggestSpend.amount)}",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                biggestSpend.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+
+            Text(
+                "€${money(biggestSpend.amount)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
