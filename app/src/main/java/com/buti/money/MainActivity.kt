@@ -742,14 +742,28 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             }
         }
 
-        if (type == "SPEND" && biggestSpend != null) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Biggest spend: ${biggestSpend.name} — €${money(biggestSpend.amount)}",
-                style=MaterialTheme.typography.bodyMedium,
-                fontWeight=FontWeight.Medium
-            )
-        }
+      if (type == "SPEND" && biggestSpend != null) {
+    Spacer(Modifier.height(6.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Biggest spend: ${biggestSpend.name}",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+
+        Text(
+            "€${money(biggestSpend.amount)}",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
         if (type == "SPEND" && categoryTotals.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
