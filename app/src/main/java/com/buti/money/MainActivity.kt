@@ -767,10 +767,7 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                     )
 
                     categoryTotals.forEach { (category, total) ->
-                        Row(
-    Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.SpaceBetween
-) {
+                        Row(Modifier.fillMaxWidth()) {
                             Text(
                                 category,
                                 modifier=Modifier.weight(1f)
@@ -785,11 +782,60 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        Button(onClick={show=true; edit=null}, modifier=Modifier.fillMaxWidth().height(56.dp)) { Icon(Icons.Default.Add,null); Spacer(Modifier.width(8.dp)); Text(addLabel) }
-        Spacer(Modifier.height(8.dp))
-        if(list.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment=Alignment.Center){Text("Nothing here yet. Tap Add to start.")}
-        else LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) { items(list, key={it.id}) { e -> EntryRow(e, {edit=e; show=true}, {vm.delete(e)}) } }
+        
+        
+        
+       Spacer(Modifier.height(12.dp))
+
+Button(
+    onClick = {
+        edit = null
+        show = true
+    },
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(56.dp)
+) {
+    Icon(Icons.Default.Add, null)
+    Spacer(Modifier.width(8.dp))
+    Text(addLabel)
+}
+
+Spacer(Modifier.height(8.dp))
+
+if (list.isEmpty()) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("Nothing here yet. Tap Add to start.")
+    }
+} else {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(
+            items = list,
+            key = { it.id }
+        ) { e ->
+            EntryRow(
+                e,
+                {
+                    edit = e
+                    show = true
+                },
+                {
+                    vm.delete(e)
+                }
+            )
+        }
+    }
+}
     }
     if(show) EntryDialog(
         type,
@@ -1051,4 +1097,5 @@ fun isInPreviousPayCycle(createdAt: Long, payday: Int): Boolean {
     return !entryDate.isBefore(previousCycleStart) &&
            entryDate.isBefore(currentCycleStart)
 }
+
 
