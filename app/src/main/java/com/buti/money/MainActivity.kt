@@ -710,9 +710,11 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
 
     var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
-        Text(
-                   )
+      Text(
+    title,
+    style = MaterialTheme.typography.headlineSmall,
+    fontWeight = FontWeight.Bold
+)
 
 Text(
     text = if (type == "SPEND") {
@@ -722,9 +724,12 @@ Text(
     },
     style = MaterialTheme.typography.titleMedium
 )
+
+if (type == "SPEND") {
     Spacer(Modifier.height(8.dp))
 
     val budgetRemaining = vm.spendingBudget - currentCycleSpend
+
     val budgetProgress = if (vm.spendingBudget > 0) {
         (currentCycleSpend / vm.spendingBudget)
             .toFloat()
@@ -745,10 +750,11 @@ Text(
     )
 
     Text(
-        if (budgetRemaining >= 0)
+        if (budgetRemaining >= 0) {
             "€${money(budgetRemaining)} left"
-        else
-            "€${money(-budgetRemaining)} over budget",
+        } else {
+            "€${money(-budgetRemaining)} over budget"
+        },
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.Bold
     )
