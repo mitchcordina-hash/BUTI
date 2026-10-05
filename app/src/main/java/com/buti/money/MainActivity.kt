@@ -270,6 +270,7 @@ fun iconFor(s: Screen) = when(s) {
             }
         }
         item { PaydayCard(vm) }
+        item { SpendingBudgetCard(vm) }
     }
 
     if (showAffordability) {
@@ -353,6 +354,91 @@ fun AffordabilityDialog(
     AlertDialog(onDismissRequest=close, title={Text("Set payday")}, text={ OutlinedTextField(text,{text=it.filter(Char::isDigit).take(2)}, label={Text("Day of month (1–28)")}) }, confirmButton={ Button(onClick={ text.toIntOrNull()?.takeIf{it in 1..28}?.let(save) }, enabled=(text.toIntOrNull()?.let { it in 1..28 } == true)){Text("Save")} }, dismissButton={TextButton(onClick=close){Text("Cancel")}})
 }
 
+
+@Composable
+fun SpendingBudgetCard(vm: ButiViewModel) {
+    var open by remember { mutableStateOf(false) }
+
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Spending budget",
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "€${money(vm.spendingBudget)} per pay cycle"
+                )
+            }
+
+            TextButton(onClick = { open = true }) {
+                Text("Change")
+            }
+        }
+    }
+@Composable
+fun SpendingBudgetDialog(
+    current: Double,
+    save: (Double) -> Unit,
+    close: () -> Unit
+) {
+    var text by remember {
+        mutableStateOf(
+            if (current % 1.0 == 0.0) current.toInt().toString()
+            else current.toString()
+        )
+    }
+
+    val amount = text.toDoubleOrNull()
+
+    AlertDialog(
+        onDismissRequest = close,
+        title = { Text("Set spending budget") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = {
+                    text = it.filter { char ->
+                        char.isDigit() || char == '.'
+                    }
+                },
+                label = { Text("Budget per pay cycle (€)") },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    amount?.takeIf { it > 0 }?.let(save)
+                },
+                enabled = amount != null && amount > 0
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = close) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+    if (open) {
+        SpendingBudgetDialog(
+            current = vm.spendingBudget,
+            save = {
+                vm.saveSpendingBudget(it)
+                open = false
+            },
+            close = { open = false }
+        )
+    }
+}
 @Composable fun SavingsScreen(vm: ButiViewModel) {
     val entries by vm.entries.collectAsState()
     val goals by vm.savingsGoals.collectAsState()
