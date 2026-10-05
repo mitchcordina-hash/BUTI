@@ -780,22 +780,41 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                         fontWeight=FontWeight.Bold
                     )
 
-                    categoryTotals.forEach { (category, total) ->
-                        Row(
-    Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.SpaceBetween
-) {
-                            Text(
-                                category,
-                                modifier=Modifier.weight(1f)
-                            )
-                            Text(
-                                "€${money(total)}",
-                                fontWeight=FontWeight.Bold
-                            )
-                        }
-                    }
-                }
+  categoryTotals.forEach { (category, total) ->
+
+    val proportion = if (currentCycleSpend > 0) {
+        (total / currentCycleSpend).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                category,
+                modifier = Modifier.weight(1f)
+            )
+
+            Text(
+                "€${money(total)}",
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LinearProgressIndicator(
+            progress = { proportion },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+        )
+    }
+}
             }
         }
 
