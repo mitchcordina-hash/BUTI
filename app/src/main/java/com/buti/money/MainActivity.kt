@@ -767,7 +767,10 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
                     )
 
                     categoryTotals.forEach { (category, total) ->
-                        Row(Modifier.fillMaxWidth()) {
+                        Row(
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.SpaceBetween
+) {
                             Text(
                                 category,
                                 modifier=Modifier.weight(1f)
