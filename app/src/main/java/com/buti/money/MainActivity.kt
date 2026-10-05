@@ -831,9 +831,9 @@ if (type == "SPEND" && biggestSpend != null) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            category,
-                            modifier = Modifier.weight(1f)
-                        )
+    "$category · ${(proportion * 100).toInt()}%",
+    modifier = Modifier.weight(1f)
+)
 
                         Text(
                             "€${money(total)}",
