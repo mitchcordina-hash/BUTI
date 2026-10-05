@@ -855,7 +855,7 @@ Text(
 
 Text(
     if (budgetRemaining >= 0) {
-        "€${money(budgetRemaining)} left"
+     "€${money(budgetRemaining)} left until payday"
     } else {
         "€${money(-budgetRemaining)} over budget"
     },
