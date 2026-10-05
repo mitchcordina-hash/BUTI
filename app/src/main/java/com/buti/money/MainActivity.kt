@@ -717,7 +717,45 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
             else
                 "Total €${money(list.sumOf { it.amount })}",
             style=MaterialTheme.typography.titleMedium
-        )
+        )if (type == "SPEND") {
+    Spacer(Modifier.height(8.dp))
+
+    val budgetRemaining = vm.spendingBudget - currentCycleSpend
+    val budgetProgress = if (vm.spendingBudget > 0) {
+        (currentCycleSpend / vm.spendingBudget)
+            .toFloat()
+            .coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    Text(
+        "Spending budget",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Bold
+    )
+
+    Text(
+        "€${money(currentCycleSpend)} spent of €${money(vm.spendingBudget)}",
+        style = MaterialTheme.typography.bodySmall
+    )
+
+    Text(
+        if (budgetRemaining >= 0)
+            "€${money(budgetRemaining)} left"
+        else
+            "€${money(-budgetRemaining)} over budget",
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Bold
+    )
+
+    LinearProgressIndicator(
+        progress = { budgetProgress },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(6.dp)
+    )
+}
 
         if (type == "SPEND" && previousCycleSpend > 0) {
             Spacer(Modifier.height(6.dp))
