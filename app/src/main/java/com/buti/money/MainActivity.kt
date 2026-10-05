@@ -982,7 +982,7 @@ if (list.isEmpty()) {
         )
     }
 
-    val categories = listOf("Groceries", "Fuel", "Eating out", "Shopping", "Transport", "Entertainment", "Other")
+  val categories = listOf("Groceries", "Fuel", "Eating out", "Shopping", "Home & DIY", "Transport", "Entertainment", "Other")
     val spendDateValid = if (type == "SPEND") {
         try {
             LocalDate.parse(spendDate)
