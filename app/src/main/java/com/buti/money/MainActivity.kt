@@ -852,7 +852,18 @@ Text(
     style = MaterialTheme.typography.bodySmall,
     fontWeight = FontWeight.Medium
 )
-    Text(Text(
+
+Text(
+    if (budgetRemaining >= 0) {
+        "€${money(budgetRemaining)} left"
+    } else {
+        "€${money(-budgetRemaining)} over budget"
+    },
+    style = MaterialTheme.typography.bodySmall,
+    fontWeight = FontWeight.Bold
+)
+
+Text(
     text = when {
         budgetProgress < 0.50f -> "✓ On track"
         budgetProgress < 0.80f -> "Keep an eye on your spending"
@@ -862,14 +873,6 @@ Text(
     style = MaterialTheme.typography.bodySmall,
     fontWeight = FontWeight.Medium
 )
-        if (budgetRemaining >= 0) {
-            "€${money(budgetRemaining)} left"
-        } else {
-            "€${money(-budgetRemaining)} over budget"
-        },
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = FontWeight.Bold
-    )
 
     LinearProgressIndicator(
         progress = { budgetProgress },
