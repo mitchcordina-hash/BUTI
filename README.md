@@ -1,6 +1,6 @@
 # BUTI v1.1.1
 
-A clean native Android payday-to-payday money manager.
+A simple Android money manager built around your payday. Track income, bills, everyday spending and savings, and see how much you can safely spend until your next payday.
 
 ## Included in v0.1
 - Payday-to-payday budget cycle
