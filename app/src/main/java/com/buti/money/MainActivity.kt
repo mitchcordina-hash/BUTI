@@ -765,64 +765,64 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     }
 }
 
-        if (type == "SPEND" && categoryTotals.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            Card(
-                modifier=Modifier.fillMaxWidth(),
-                shape=RoundedCornerShape(18.dp)
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    verticalArrangement=Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        "Where your money goes",
-                        fontWeight=FontWeight.Bold
-                    )
+    if (type == "SPEND" && categoryTotals.isNotEmpty()) {
+    Spacer(Modifier.height(10.dp))
 
-  categoryTotals.forEach { (category, total) ->
-
-    val proportion = if (currentCycleSpend > 0) {
-        (total / currentCycleSpend).toFloat().coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-
-    Column(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        shape = RoundedCornerShape(18.dp)
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                category,
-                modifier = Modifier.weight(1f)
-            )
-
-            Text(
-                "€${money(total)}",
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        LinearProgressIndicator(
-            progress = { proportion },
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-        )
-    }
-}            }
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                "Where your money goes",
+                fontWeight = FontWeight.Bold
+            )
+
+            categoryTotals.forEach { (category, total) ->
+
+                val proportion = if (currentCycleSpend > 0) {
+                    (total / currentCycleSpend)
+                        .toFloat()
+                        .coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            category,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            "€${money(total)}",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { proportion },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                    )
+                }
+            }
         }
     }
-            }
-
-
-        
-        
-        
+}
        Spacer(Modifier.height(12.dp))
 
 Button(
