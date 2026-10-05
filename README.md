@@ -1,4 +1,4 @@
-# BUTI 2.0 v0.1
+# BUTI v1.1.1
 
 A clean native Android payday-to-payday money manager.
 
