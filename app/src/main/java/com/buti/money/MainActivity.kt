@@ -795,7 +795,13 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     }
 
     var show by remember { mutableStateOf(openAdd) }; var edit by remember { mutableStateOf<MoneyEntry?>(null) }
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
+Column(
+    Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp)
+        .padding(bottom = 90.dp)
+) {
       Text(
     title,
     style = MaterialTheme.typography.headlineSmall,
