@@ -144,9 +144,9 @@ fun iconFor(s: Screen) = when(s) {
     val entries by vm.entries.collectAsState()
     val goals by vm.savingsGoals.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
-    val bills = entries.filter{
-        it.type=="BILL" && (!it.recurring || billInCurrentPayCycle(it.dueDay, vm.payday))
-    }.sumOf{it.amount}
+   val bills = entries
+    .filter { it.type == "BILL" }
+    .sumOf { it.amount }
     val spend = entries
         .filter {
             it.type == "SPEND" &&
