@@ -449,9 +449,14 @@ fun SpendingBudgetDialog(
     var showSavingsDialog by remember { mutableStateOf(false) }
     var editingSaving by remember { mutableStateOf<MoneyEntry?>(null) }
 
-    Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement=Arrangement.spacedBy(10.dp)
+  Column(
+    Modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp)
+        .padding(bottom = 90.dp),
+    verticalArrangement = Arrangement.spacedBy(10.dp)
+) {
     ) {
         Text("Savings", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text("Total saved €${money(totalSaved)}", style=MaterialTheme.typography.titleMedium)
@@ -578,7 +583,7 @@ fun SpendingBudgetDialog(
         if (savings.isEmpty()) {
             Text("No savings added yet.")
         } else {
-            LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 items(savings, key={it.id}) { entry ->
                     EntryRow(
     entry,
