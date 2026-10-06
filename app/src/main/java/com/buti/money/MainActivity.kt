@@ -1335,9 +1335,3 @@ fun isInPreviousPayCycle(createdAt: Long, payday: Int): Boolean {
     return !entryDate.isBefore(previousCycleStart) &&
            entryDate.isBefore(currentCycleStart)
 }
-sed -n '445,475p' app/src/main/java/com/buti/money/MainActivity.kt
-
-
-git diff --check
-
-sed -i '460s/[[:space:]]*$//' app/src/main/java/com/buti/money/MainActivity.kt
