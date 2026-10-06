@@ -457,7 +457,7 @@ fun SpendingBudgetDialog(
         .padding(bottom = 90.dp),
     verticalArrangement = Arrangement.spacedBy(10.dp)
 ) {
-    ) {
+
         Text("Savings", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
         Text("Total saved €${money(totalSaved)}", style=MaterialTheme.typography.titleMedium)
 
@@ -584,7 +584,7 @@ fun SpendingBudgetDialog(
             Text("No savings added yet.")
         } else {
             Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                items(savings, key={it.id}) { entry ->
+                savings.forEach { entry ->
                     EntryRow(
     entry,
     {
@@ -1335,5 +1335,9 @@ fun isInPreviousPayCycle(createdAt: Long, payday: Int): Boolean {
     return !entryDate.isBefore(previousCycleStart) &&
            entryDate.isBefore(currentCycleStart)
 }
+sed -n '445,475p' app/src/main/java/com/buti/money/MainActivity.kt
 
 
+git diff --check
+
+sed -i '460s/[[:space:]]*$//' app/src/main/java/com/buti/money/MainActivity.kt
