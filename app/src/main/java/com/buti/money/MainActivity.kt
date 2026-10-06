@@ -96,25 +96,111 @@ fun saveSpendingBudget(amount: Double) {
 
 enum class Screen(val label: String) { DASHBOARD("Home"), INCOME("Income"), BILLS("Bills"), SPEND("Spend"), SAVINGS("Savings") }
 
-@Composable fun ButiTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = lightColorScheme(), content = content)
+@Composable
+fun ButiTheme(content: @Composable () -> Unit) {
+
+    val butiPurple = androidx.compose.ui.graphics.Color(0xFF9B5CFF)
+    val butiBlack = androidx.compose.ui.graphics.Color(0xFF000000)
+    val butiCard = androidx.compose.ui.graphics.Color(0xFF17171C)
+    val butiWhite = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+
+    val colors = darkColorScheme(
+        primary = butiPurple,
+        onPrimary = butiWhite,
+
+        primaryContainer = androidx.compose.ui.graphics.Color(0xFF6D45B5),
+        onPrimaryContainer = butiWhite,
+
+        secondary = butiPurple,
+        onSecondary = butiWhite,
+
+        secondaryContainer = butiCard,
+        onSecondaryContainer = butiWhite,
+
+        background = butiBlack,
+        onBackground = butiWhite,
+
+        surface = butiBlack,
+        onSurface = butiWhite,
+
+        surfaceVariant = butiCard,
+        onSurfaceVariant = butiWhite,
+
+        outline = androidx.compose.ui.graphics.Color(0xFF55555F)
+    )
+
+    MaterialTheme(
+        colorScheme = colors,
+        content = content
+    )
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun ButiApp(vm: ButiViewModel = viewModel()) {
     var screen by remember { mutableStateOf(Screen.DASHBOARD) }
     var quickAddScreen by remember { mutableStateOf<Screen?>(null) }
     Scaffold(
-        topBar = { TopAppBar(title = { Text("BUTI", fontWeight = FontWeight.Black) }, actions = { Text("Payday ${vm.payday}", modifier=Modifier.padding(end=16.dp)) }) },
-        bottomBar = {
-            NavigationBar {
-                listOf(Screen.DASHBOARD, Screen.INCOME, Screen.BILLS, Screen.SPEND, Screen.SAVINGS).forEach { s ->
-                    NavigationBarItem(selected=screen==s, onClick={screen=s}, icon={ Icon(iconFor(s), null) }, label={Text(s.label, fontSize=11.sp, maxLines=1)})
-                }
-            }
+        topBar = {
+    TopAppBar(
+        title = {
+            Text(
+                "BUTI",
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+        },
+        actions = {
+            Text(
+                "Payday ${vm.payday}",
+                modifier = Modifier.padding(end = 16.dp)
+            )
         }
-    ) { pad ->
-        Box(Modifier.padding(pad).fillMaxSize()) {
+    )
+},
+        bottomBar = {
+         NavigationBar(
+    containerColor = MaterialTheme.colorScheme.background
+) {
+    listOf(
+        Screen.DASHBOARD,
+        Screen.INCOME,
+        Screen.BILLS,
+        Screen.SPEND,
+        Screen.SAVINGS
+    ).forEach { s ->
+
+        NavigationBarItem(
+            selected = screen == s,
+            onClick = { screen = s },
+
+            icon = {
+                Icon(
+                    iconFor(s),
+                    contentDescription = s.label
+                )
+            },
+
+            label = {
+                Text(
+                    s.label,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+            },
+
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+           )
+    }
+}
+},
+) { pad ->   Box(Modifier.padding(pad).fillMaxSize()) {
             when(screen) {
                 Screen.DASHBOARD -> Dashboard(vm) { target, quickAdd ->
                     quickAddScreen = if (quickAdd) target else null
@@ -183,7 +269,12 @@ fun iconFor(s: Screen) = when(s) {
     var showAffordability by remember { mutableStateOf(false) }
 
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=10.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        item { Text("Your money. Made simple.", style=MaterialTheme.typography.titleMedium) }
+        item { Text(
+    "Your money. Made simple.",
+    style = MaterialTheme.typography.titleMedium,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+) }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
@@ -218,7 +309,14 @@ fun iconFor(s: Screen) = when(s) {
             }
         }
 
-        item { Text("Quick actions", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) }
+    item {
+    Text(
+        "Quick actions",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
         item {
             Row(
                 Modifier.fillMaxWidth(),
@@ -286,9 +384,16 @@ fun iconFor(s: Screen) = when(s) {
 @Composable fun HeroCard(label:String, amount:Double, subtitle:String) = Card(
     shape=RoundedCornerShape(24.dp),
     modifier=Modifier.fillMaxWidth(),
-    colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer),
+    colors = CardDefaults.cardColors(
+    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    contentColor = MaterialTheme.colorScheme.onSurface
+),
     elevation=CardDefaults.cardElevation(defaultElevation=4.dp)
-) { Column(Modifier.padding(horizontal=20.dp, vertical=16.dp)) { Text(label, fontWeight=FontWeight.Bold); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
+) { Column(Modifier.padding(horizontal=20.dp, vertical=16.dp)) { Text(
+    label,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+); Text("€${money(amount.coerceAtLeast(0.0))}", style=MaterialTheme.typography.displayMedium, fontWeight=FontWeight.Black); Text(subtitle) } }
 @Composable
 fun AffordabilityDialog(
     available: Double,
@@ -342,7 +447,11 @@ fun AffordabilityDialog(
     shape=RoundedCornerShape(18.dp),
     colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer),
     elevation=CardDefaults.cardElevation(defaultElevation=2.dp)
-) { Column(Modifier.padding(horizontal=14.dp, vertical=10.dp)) { Text(label); Text("€${money(amount)}", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) } }
+) { Column(Modifier.padding(horizontal=14.dp, vertical=10.dp)) { Text(
+    label,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+); Text("€${money(amount)}", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.Bold) } }
 
 @Composable fun PaydayCard(vm:ButiViewModel) {
     var open by remember { mutableStateOf(false) }
@@ -360,7 +469,12 @@ fun AffordabilityDialog(
 fun SpendingBudgetCard(vm: ButiViewModel) {
     var open by remember { mutableStateOf(false) }
 
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
+    )
+) {
         Row(
             Modifier
                 .padding(16.dp)
@@ -458,7 +572,12 @@ fun SpendingBudgetDialog(
     verticalArrangement = Arrangement.spacedBy(10.dp)
 ) {
 
-        Text("Savings", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
+        Text(
+    "Savings",
+    style = MaterialTheme.typography.headlineSmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+)
         Text("Total saved €${money(totalSaved)}", style=MaterialTheme.typography.titleMedium)
 
         Row(
@@ -808,10 +927,11 @@ Column(
         .padding(16.dp)
         .padding(bottom = 90.dp)
 ) {
-      Text(
+Text(
     title,
     style = MaterialTheme.typography.headlineSmall,
-    fontWeight = FontWeight.Bold
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
 )
 
 Text(
