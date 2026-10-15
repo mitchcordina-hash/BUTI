@@ -116,12 +116,19 @@ interface MoneyDao {
             )
         }
 
-        val shouldApply = entry.account != null &&
+        // Legacy transactions without an assigned account must not
+        // suddenly affect current balances when edited.
+        val account = if (original.account == null) null else entry.account
+
+        val shouldApply = account != null &&
             (entry.type == "SPEND" ||
              entry.type == "INCOME" ||
              (entry.type == "BILL" && entry.paid))
 
-        val updated = entry.copy(balanceApplied = shouldApply)
+        val updated = entry.copy(
+            account = account,
+            balanceApplied = shouldApply
+        )
 
         if (shouldApply) {
             applyBalanceChange(
