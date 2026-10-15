@@ -120,10 +120,18 @@ interface MoneyDao {
         // suddenly affect current balances when edited.
         val account = if (original.account == null) null else entry.account
 
-        val shouldApply = account != null &&
+        val eligible = account != null &&
             (entry.type == "SPEND" ||
              entry.type == "INCOME" ||
              (entry.type == "BILL" && entry.paid))
+
+        // Do not apply legacy spending or income that was never
+        // included in the tracked balance. Allow an unpaid bill
+        // to be applied when it is marked paid.
+        val shouldApply = eligible && (
+            original.balanceApplied ||
+            (original.type == "BILL" && entry.type == "BILL" && entry.paid)
+        )
 
         val updated = entry.copy(
             account = account,
