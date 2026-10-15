@@ -86,7 +86,8 @@ fun saveSpendingBudget(amount: Double) {
         recurring: Boolean = false,
         savingsGoalId: Long? = null,
         category: String? = null,
-        createdAt: Long? = null
+        createdAt: Long? = null,
+        account: String? = null
     ) = viewModelScope.launch {
         dao.insert(
             MoneyEntry(
@@ -97,7 +98,8 @@ fun saveSpendingBudget(amount: Double) {
                 recurring=recurring,
                 savingsGoalId=savingsGoalId,
                 category=category,
-                createdAt=createdAt ?: System.currentTimeMillis()
+                createdAt=createdAt ?: System.currentTimeMillis(),
+                account=account
             )
         )
     }
@@ -1240,7 +1242,8 @@ list.forEach { e ->
                     dueDay=day,
                     recurring=recurring,
                     category=category,
-                    createdAt=transactionDate
+                    createdAt=transactionDate,
+                    account=account
                 )
             } else {
                 vm.update(
