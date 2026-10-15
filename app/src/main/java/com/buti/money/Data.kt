@@ -109,15 +109,6 @@ interface MoneyDao {
     suspend fun updateWithBalance(entry: MoneyEntry) {
         val original = getEntryById(entry.id) ?: return
 
-        if (original.balanceApplied && original.account != null) {
-            applyBalanceChange(
-                original.account,
-                -transactionBalanceChange(original)
-            )
-        }
-
-        // Legacy transactions without an assigned account must not
-        // suddenly affect current balances when edited.
         val account = if (original.account == null) null else entry.account
 
         val eligible = account != null &&
@@ -125,18 +116,25 @@ interface MoneyDao {
              entry.type == "INCOME" ||
              (entry.type == "BILL" && entry.paid))
 
-        // Do not apply legacy spending or income that was never
-        // included in the tracked balance. Allow an unpaid bill
-        // to be applied when it is marked paid.
-        val shouldApply = eligible && (
-            original.balanceApplied ||
-            (original.type == "BILL" && entry.type == "BILL" && entry.paid)
-        )
+        val newlyPaidBill = original.type == "BILL" &&
+            entry.type == "BILL" &&
+            !original.paid &&
+            entry.paid
+
+        val shouldApply = eligible &&
+            (original.balanceApplied || newlyPaidBill)
 
         val updated = entry.copy(
             account = account,
             balanceApplied = shouldApply
         )
+
+        if (original.balanceApplied && original.account != null) {
+            applyBalanceChange(
+                original.account,
+                -transactionBalanceChange(original)
+            )
+        }
 
         if (shouldApply) {
             applyBalanceChange(
