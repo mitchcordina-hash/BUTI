@@ -330,9 +330,32 @@ fun iconFor(s: Screen) = when(s) {
                 java.time.temporal.ChronoUnit.DAYS.between(today, nextDue)
             }
         }
-    val available = income - bills - spend - saving
     val days = daysUntilPayday(vm.payday).coerceAtLeast(1)
-    val daily = available / days
+    val nextPayday = LocalDate.now().plusDays(days)
+
+    val unpaidBills = entries
+        .filter { it.type == "BILL" && !it.paid }
+        .filter { bill ->
+            val dueDay = bill.dueDay ?: return@filter false
+            val thisMonth = YearMonth.from(today)
+            val thisDue = thisMonth.atDay(
+                dueDay.coerceIn(1, thisMonth.lengthOfMonth())
+            )
+            val nextDue = if (thisDue.isBefore(today)) {
+                val nextMonth = thisMonth.plusMonths(1)
+                nextMonth.atDay(
+                    dueDay.coerceIn(1, nextMonth.lengthOfMonth())
+                )
+            } else thisDue
+
+            nextDue.isBefore(nextPayday) || nextDue.isEqual(nextPayday)
+        }
+        .sumOf { it.amount }
+
+    val groceryReserve = 100.0 * days.toDouble() / 7.0
+    val available = vm.bankBalance + vm.revolutBalance -
+        unpaidBills - groceryReserve
+    val daily = available.coerceAtLeast(0.0) / days
     var showAffordability by remember { mutableStateOf(false) }
     var showBalanceDialog by remember { mutableStateOf(false) }
     var bankText by remember { mutableStateOf(vm.bankBalance.toString()) }
