@@ -30,8 +30,29 @@ data class SavingsGoal(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "account_balances")
+data class AccountBalance(
+    @PrimaryKey val account: String,
+    val balanceCents: Long
+)
+
 @Dao
 interface MoneyDao {
+    @Query("SELECT * FROM account_balances")
+    fun observeAccountBalances(): Flow<List<AccountBalance>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAccountBalance(balance: AccountBalance)
+
+    @Update
+    suspend fun updateAccountBalance(balance: AccountBalance)
+
+    @Transaction
+    suspend fun saveAccountBalances(bankCents: Long, revolutCents: Long) {
+        updateAccountBalance(AccountBalance("Bank", bankCents))
+        updateAccountBalance(AccountBalance("Revolut", revolutCents))
+    }
+
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
     @Insert suspend fun insert(entry: MoneyEntry)
     @Update suspend fun update(entry: MoneyEntry)
@@ -47,7 +68,7 @@ interface MoneyDao {
     suspend fun deleteSavingsGoal(goal: SavingsGoal)
 }
 
-@Database(entities = [MoneyEntry::class, SavingsGoal::class], version = 7, exportSchema = false)
+@Database(entities = [MoneyEntry::class, SavingsGoal::class, AccountBalance::class], version = 8, exportSchema = false)
 abstract class ButiDb : RoomDatabase() {
     abstract fun dao(): MoneyDao
     companion object {
@@ -95,10 +116,16 @@ abstract class ButiDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS account_balances (account TEXT NOT NULL PRIMARY KEY, balanceCents INTEGER NOT NULL)")
+            }
+        }
+
         @Volatile private var INSTANCE: ButiDb? = null
         fun get(context: Context): ButiDb = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, ButiDb::class.java, "buti.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
                 .also { INSTANCE = it }
         }

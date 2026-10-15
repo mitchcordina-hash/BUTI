@@ -65,6 +65,35 @@ fun saveSpendingBudget(amount: Double) {
     )
         private set
 
+    private fun initializeBalances() {
+        viewModelScope.launch {
+            dao.insertAccountBalance(
+                AccountBalance("Bank", kotlin.math.round(bankBalance * 100).toLong())
+            )
+            dao.insertAccountBalance(
+                AccountBalance("Revolut", kotlin.math.round(revolutBalance * 100).toLong())
+            )
+            observeBalancesFromRoom()
+        }
+    }
+
+    init {
+        initializeBalances()
+    }
+
+    private fun observeBalancesFromRoom() {
+        viewModelScope.launch {
+            dao.observeAccountBalances().collect { balances ->
+                balances.find { it.account == "Bank" }?.let {
+                    bankBalance = it.balanceCents / 100.0
+                }
+                balances.find { it.account == "Revolut" }?.let {
+                    revolutBalance = it.balanceCents / 100.0
+                }
+            }
+        }
+    }
+
     fun saveBalances(bank: Double, revolut: Double) {
         bankBalance = bank
         revolutBalance = revolut
@@ -72,6 +101,18 @@ fun saveSpendingBudget(amount: Double) {
             .putFloat("bank_balance", bank.toFloat())
             .putFloat("revolut_balance", revolut.toFloat())
             .apply()
+        viewModelScope.launch {
+            dao.insertAccountBalance(
+                AccountBalance("Bank", kotlin.math.round(bank * 100).toLong())
+            )
+            dao.insertAccountBalance(
+                AccountBalance("Revolut", kotlin.math.round(revolut * 100).toLong())
+            )
+            dao.saveAccountBalances(
+                kotlin.math.round(bank * 100).toLong(),
+                kotlin.math.round(revolut * 100).toLong()
+            )
+        }
     }
 
     fun savePayday(day: Int) {
