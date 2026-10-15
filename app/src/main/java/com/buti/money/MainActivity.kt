@@ -55,6 +55,25 @@ fun saveSpendingBudget(amount: Double) {
     spendingBudget = amount
     prefs.edit().putFloat("spending_budget", amount.toFloat()).apply()
 }
+    var bankBalance by mutableStateOf(
+        prefs.getFloat("bank_balance", 1157.56f).toDouble()
+    )
+        private set
+
+    var revolutBalance by mutableStateOf(
+        prefs.getFloat("revolut_balance", 195.18f).toDouble()
+    )
+        private set
+
+    fun saveBalances(bank: Double, revolut: Double) {
+        bankBalance = bank
+        revolutBalance = revolut
+        prefs.edit()
+            .putFloat("bank_balance", bank.toFloat())
+            .putFloat("revolut_balance", revolut.toFloat())
+            .apply()
+    }
+
     fun savePayday(day: Int) {
         payday = day
         prefs.edit().putInt("payday", day).apply()
@@ -293,7 +312,12 @@ fun iconFor(s: Screen) = when(s) {
                     Column(
                         Modifier.fillMaxWidth().padding(14.dp)
                     ) {
-                        Text("Savings goal", style=MaterialTheme.typography.bodySmall)
+                        Text(
+    "Savings goal",
+    style = MaterialTheme.typography.bodySmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+)
                         Text(goal.name, fontWeight=FontWeight.Bold)
                         Text(
                             "€${money(dashboardGoalSaved)} / €${money(goal.targetAmount)} • $percent%",
@@ -1189,7 +1213,10 @@ list.forEach { e ->
                 },
                 {
                     vm.delete(e)
-                }
+                },
+                togglePaid = if (e.type == "BILL") {
+                    { vm.update(e.copy(paid = !e.paid)) }
+                } else null
             )
         }
     }
@@ -1228,7 +1255,7 @@ list.forEach { e ->
     )
 }
 
-@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit) {
+@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit, togglePaid:(()->Unit)? = null) {
     var confirmDelete by remember { mutableStateOf(false) }
 
     Card(Modifier.fillMaxWidth()) {
@@ -1274,10 +1301,24 @@ list.forEach { e ->
                 Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
             }
 
+            if (e.type == "BILL") {
+                Text(
+                    if (e.paid) "PAID" else "UNPAID",
+                    style=MaterialTheme.typography.bodySmall,
+                    color=if (e.paid) MaterialTheme.colorScheme.primary
+                          else MaterialTheme.colorScheme.error
+                )
+            }
+
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement=Arrangement.End
             ) {
+                if (e.type == "BILL" && togglePaid != null) {
+                    TextButton(onClick=togglePaid) {
+                        Text(if (e.paid) "Mark Unpaid" else "Mark Paid")
+                    }
+                }
                 IconButton(onClick=edit) {
                     Icon(Icons.Default.Edit, contentDescription="Edit")
                 }
