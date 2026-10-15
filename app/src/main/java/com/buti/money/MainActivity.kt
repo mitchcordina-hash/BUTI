@@ -1231,7 +1231,7 @@ list.forEach { e ->
         type,
         dueDay,
         edit,
-        onSave={name,amount,day,recurring,category,transactionDate ->
+        onSave={name,amount,day,recurring,category,transactionDate,account ->
             if(edit==null) {
                 vm.add(
                     name=name,
@@ -1250,7 +1250,8 @@ list.forEach { e ->
                         dueDay=day,
                         recurring=recurring,
                         category=category,
-                        createdAt=transactionDate ?: edit!!.createdAt
+                        createdAt=transactionDate ?: edit!!.createdAt,
+                        account=account
                     )
                 )
             }
@@ -1352,11 +1353,12 @@ list.forEach { e ->
     }
 }
 
-@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?,Long?)->Unit, onClose:()->Unit) {
+@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?,Long?,String)->Unit, onClose:()->Unit) {
     var name by remember(existing){mutableStateOf(existing?.name ?: "")}; var amount by remember(existing){mutableStateOf(existing?.amount?.toString() ?: "")}; var day by remember(existing){mutableStateOf(existing?.dueDay?.toString() ?: "")}
     var recurring by remember(existing){mutableStateOf(existing?.recurring ?: false)}
     var category by remember(existing){mutableStateOf(existing?.category ?: "Other")}
     var categoryMenuOpen by remember { mutableStateOf(false) }
+    var selectedAccount by remember(existing) { mutableStateOf(existing?.account ?: "Bank") }
 
     var spendDate by remember(existing) {
         mutableStateOf(
@@ -1395,6 +1397,7 @@ list.forEach { e ->
     )
 )
 
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("Bank", "Revolut").forEach { account -> FilterChip(selected=selectedAccount==account, onClick={selectedAccount=account}, label={Text(account)}) } }
         if (type == "SPEND") {
             Box {
                 OutlinedButton(
@@ -1450,6 +1453,7 @@ list.forEach { e ->
             .toInstant()
             .toEpochMilli()
     } else null
+    , selectedAccount
 )}){Text("Save")}}, dismissButton={TextButton(onClick=onClose){Text("Cancel")}})
 }
 
