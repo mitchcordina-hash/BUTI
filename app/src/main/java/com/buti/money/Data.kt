@@ -36,6 +36,19 @@ data class AccountBalance(
     val balanceCents: Long
 )
 
+fun transactionBalanceChange(entry: MoneyEntry): Long {
+    if (!entry.balanceApplied || entry.account == null) return 0L
+
+    val cents = kotlin.math.round(entry.amount * 100).toLong()
+
+    return when (entry.type) {
+        "SPEND" -> -cents
+        "INCOME" -> cents
+        "BILL" -> if (entry.paid) -cents else 0L
+        else -> 0L
+    }
+}
+
 @Dao
 interface MoneyDao {
     @Query("SELECT * FROM account_balances")
@@ -47,6 +60,23 @@ interface MoneyDao {
     @Update
     suspend fun updateAccountBalance(balance: AccountBalance)
 
+    @Query("""
+        UPDATE account_balances
+        SET balanceCents = balanceCents + :changeCents
+        WHERE account = :account
+    """)
+    suspend fun adjustAccountBalance(account: String, changeCents: Long): Int
+
+    suspend fun applyBalanceChange(account: String, changeCents: Long) {
+        if (changeCents == 0L) return
+        require(account == "Bank" || account == "Revolut") {
+            "Unknown account"
+        }
+        check(adjustAccountBalance(account, changeCents) == 1) {
+            "Account balance record missing"
+        }
+    }
+
     @Transaction
     suspend fun saveAccountBalances(bankCents: Long, revolutCents: Long) {
         updateAccountBalance(AccountBalance("Bank", bankCents))
@@ -54,8 +84,68 @@ interface MoneyDao {
     }
 
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
+    @Query("SELECT * FROM entries WHERE id = :id LIMIT 1")
+    suspend fun getEntryById(id: Long): MoneyEntry?
+
+    @Transaction
+    suspend fun insertWithBalance(entry: MoneyEntry) {
+        val shouldApply = entry.account != null &&
+            (entry.type == "SPEND" ||
+             entry.type == "INCOME" ||
+             (entry.type == "BILL" && entry.paid))
+
+        val newEntry = entry.copy(balanceApplied = shouldApply)
+
+        if (shouldApply) {
+            val change = transactionBalanceChange(newEntry)
+            applyBalanceChange(requireNotNull(newEntry.account), change)
+        }
+
+        insert(newEntry)
+    }
+
     @Insert suspend fun insert(entry: MoneyEntry)
+    @Transaction
+    suspend fun updateWithBalance(entry: MoneyEntry) {
+        val original = getEntryById(entry.id) ?: return
+
+        if (original.balanceApplied && original.account != null) {
+            applyBalanceChange(
+                original.account,
+                -transactionBalanceChange(original)
+            )
+        }
+
+        val shouldApply = entry.account != null &&
+            (entry.type == "SPEND" ||
+             entry.type == "INCOME" ||
+             (entry.type == "BILL" && entry.paid))
+
+        val updated = entry.copy(balanceApplied = shouldApply)
+
+        if (shouldApply) {
+            applyBalanceChange(
+                requireNotNull(updated.account),
+                transactionBalanceChange(updated)
+            )
+        }
+
+        update(updated)
+    }
+
     @Update suspend fun update(entry: MoneyEntry)
+    @Transaction
+    suspend fun deleteWithBalance(entry: MoneyEntry) {
+        val original = getEntryById(entry.id) ?: return
+
+        if (original.balanceApplied && original.account != null) {
+            val reversal = -transactionBalanceChange(original)
+            applyBalanceChange(original.account, reversal)
+        }
+
+        delete(original)
+    }
+
     @Delete suspend fun delete(entry: MoneyEntry)
 
     @Query("SELECT * FROM savings_goals ORDER BY createdAt DESC")

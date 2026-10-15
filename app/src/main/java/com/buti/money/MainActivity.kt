@@ -130,7 +130,7 @@ fun saveSpendingBudget(amount: Double) {
         createdAt: Long? = null,
         account: String? = null
     ) = viewModelScope.launch {
-        dao.insert(
+        dao.insertWithBalance(
             MoneyEntry(
                 name=name,
                 amount=amount,
@@ -144,8 +144,13 @@ fun saveSpendingBudget(amount: Double) {
             )
         )
     }
-    fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
-    fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
+    fun delete(e: MoneyEntry) = viewModelScope.launch {
+        dao.deleteWithBalance(e)
+    }
+
+    fun update(e: MoneyEntry) = viewModelScope.launch {
+        dao.updateWithBalance(e)
+    }
 
     fun addSavingsGoal(name: String, targetAmount: Double) = viewModelScope.launch {
         dao.insertSavingsGoal(SavingsGoal(name=name, targetAmount=targetAmount))
