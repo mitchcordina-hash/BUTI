@@ -346,7 +346,11 @@ fun iconFor(s: Screen) = when(s) {
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.primary
 ) }
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={showBalanceDialog=true}) { Text("Edit") } } }
+        item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={
+            bankText = vm.bankBalance.toString()
+            revolutText = vm.revolutBalance.toString()
+            showBalanceDialog = true
+        }) { Text("Edit") } } }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
