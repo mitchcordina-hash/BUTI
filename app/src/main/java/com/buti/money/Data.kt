@@ -61,6 +61,18 @@ fun transactionBalanceChange(entry: MoneyEntry): Long {
     }
 }
 
+fun isBillPaidForMonth(
+    bill: MoneyEntry,
+    payments: List<MonthlyBillPayment>,
+    yearMonth: String
+): Boolean {
+    if (!bill.recurring) return bill.paid
+
+    return payments.any {
+        it.billId == bill.id && it.yearMonth == yearMonth
+    }
+}
+
 @Dao
 interface MoneyDao {
     @Query("SELECT * FROM account_balances")
@@ -151,6 +163,27 @@ interface MoneyDao {
         applyBalanceChange(account, -amountCents)
     }
 
+    @Delete
+    suspend fun deleteMonthlyBillPayment(payment: MonthlyBillPayment)
+
+    @Transaction
+    suspend fun unpayMonthlyBill(billId: Long, yearMonth: String) {
+        val payment = getMonthlyBillPayment(billId, yearMonth)
+            ?: return
+
+        val account = payment.account
+            ?: error("Payment has no account")
+
+        applyBalanceChange(account, payment.amountCents)
+        deleteMonthlyBillPayment(payment)
+    }
+
+    @Query("""
+        SELECT COUNT(*) FROM monthly_bill_payments
+        WHERE billId = :billId
+    """)
+    suspend fun countMonthlyBillPayments(billId: Long): Int
+
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
     @Query("SELECT * FROM entries WHERE id = :id LIMIT 1")
     suspend fun getEntryById(id: Long): MoneyEntry?
@@ -176,6 +209,17 @@ interface MoneyDao {
     @Transaction
     suspend fun updateWithBalance(entry: MoneyEntry) {
         val original = getEntryById(entry.id) ?: return
+
+        if (original.type == "BILL" && original.recurring &&
+            countMonthlyBillPayments(original.id) > 0) {
+            require(
+                entry.type == original.type &&
+                entry.recurring == original.recurring &&
+                entry.amount == original.amount &&
+                entry.account == original.account &&
+                entry.paid == original.paid
+            ) { "Bill has payment history; financial changes are protected" }
+        }
 
         val account = if (original.account == null) null else entry.account
 
@@ -218,6 +262,10 @@ interface MoneyDao {
     @Transaction
     suspend fun deleteWithBalance(entry: MoneyEntry) {
         val original = getEntryById(entry.id) ?: return
+
+        require(countMonthlyBillPayments(original.id) == 0) {
+            "Cannot delete a bill with monthly payment history"
+        }
 
         if (original.balanceApplied && original.account != null) {
             val reversal = -transactionBalanceChange(original)
