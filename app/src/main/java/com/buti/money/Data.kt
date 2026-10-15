@@ -184,6 +184,42 @@ interface MoneyDao {
     """)
     suspend fun countMonthlyBillPayments(billId: Long): Int
 
+    @Query("""
+        SELECT * FROM entries
+        WHERE type = 'BILL' AND recurring = 1 AND paid = 1
+    """)
+    suspend fun getLegacyPaidRecurringBills(): List<MoneyEntry>
+
+    @Query("""
+        INSERT OR IGNORE INTO monthly_bill_payments
+        (billId, yearMonth, paidAt, amountCents, account)
+        VALUES (-1, 'IMPORT-2026-10', 0, 0, NULL)
+    """)
+    suspend fun markOctoberImportStarted(): Long
+
+    @Transaction
+    suspend fun importLegacyOctober2026Payments() {
+        if (markOctoberImportStarted() == -1L) return
+
+        val yearMonth = "2026-10"
+
+        for (bill in getLegacyPaidRecurringBills()) {
+            if (getMonthlyBillPayment(bill.id, yearMonth) != null) {
+                continue
+            }
+
+            insertMonthlyBillPayment(
+                MonthlyBillPayment(
+                    billId = bill.id,
+                    yearMonth = yearMonth,
+                    paidAt = System.currentTimeMillis(),
+                    amountCents = kotlin.math.round(bill.amount * 100).toLong(),
+                    account = bill.account
+                )
+            )
+        }
+    }
+
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
     @Query("SELECT * FROM entries WHERE id = :id LIMIT 1")
     suspend fun getEntryById(id: Long): MoneyEntry?
