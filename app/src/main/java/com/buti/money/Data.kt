@@ -30,6 +30,18 @@ data class SavingsGoal(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "monthly_bill_payments",
+    primaryKeys = ["billId", "yearMonth"]
+)
+data class MonthlyBillPayment(
+    val billId: Long,
+    val yearMonth: String,
+    val paidAt: Long,
+    val amountCents: Long,
+    val account: String?
+)
+
 @Entity(tableName = "account_balances")
 data class AccountBalance(
     @PrimaryKey val account: String,
@@ -81,6 +93,62 @@ interface MoneyDao {
     suspend fun saveAccountBalances(bankCents: Long, revolutCents: Long) {
         updateAccountBalance(AccountBalance("Bank", bankCents))
         updateAccountBalance(AccountBalance("Revolut", revolutCents))
+    }
+
+    @Query("SELECT * FROM monthly_bill_payments")
+    fun observeMonthlyBillPayments(): Flow<List<MonthlyBillPayment>>
+
+    @Query("""
+        SELECT * FROM monthly_bill_payments
+        WHERE billId = :billId AND yearMonth = :yearMonth
+        LIMIT 1
+    """)
+    suspend fun getMonthlyBillPayment(
+        billId: Long,
+        yearMonth: String
+    ): MonthlyBillPayment?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertMonthlyBillPayment(payment: MonthlyBillPayment)
+
+    @Transaction
+    suspend fun payMonthlyBill(billId: Long, yearMonth: String) {
+        require(Regex("\\d{4}-(0[1-9]|1[0-2])").matches(yearMonth)) {
+            "Invalid payment month"
+        }
+
+        val bill = getEntryById(billId)
+            ?: error("Bill not found")
+
+        require(bill.type == "BILL" && bill.recurring) {
+            "Not a recurring bill"
+        }
+
+        if (getMonthlyBillPayment(billId, yearMonth) != null) {
+            return
+        }
+
+        val account = bill.account
+        require(account == "Bank" || account == "Revolut") {
+            "Select Bank or Revolut before paying"
+        }
+
+        val amountCents = kotlin.math.round(bill.amount * 100).toLong()
+        require(amountCents > 0L) {
+            "Bill amount must be positive"
+        }
+
+        insertMonthlyBillPayment(
+            MonthlyBillPayment(
+                billId = billId,
+                yearMonth = yearMonth,
+                paidAt = System.currentTimeMillis(),
+                amountCents = amountCents,
+                account = account
+            )
+        )
+
+        applyBalanceChange(account, -amountCents)
     }
 
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
@@ -171,7 +239,7 @@ interface MoneyDao {
     suspend fun deleteSavingsGoal(goal: SavingsGoal)
 }
 
-@Database(entities = [MoneyEntry::class, SavingsGoal::class, AccountBalance::class], version = 8, exportSchema = false)
+@Database(entities = [MoneyEntry::class, SavingsGoal::class, AccountBalance::class, MonthlyBillPayment::class], version = 9, exportSchema = false)
 abstract class ButiDb : RoomDatabase() {
     abstract fun dao(): MoneyDao
     companion object {
@@ -225,10 +293,25 @@ abstract class ButiDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS monthly_bill_payments (
+                        billId INTEGER NOT NULL,
+                        yearMonth TEXT NOT NULL,
+                        paidAt INTEGER NOT NULL,
+                        amountCents INTEGER NOT NULL,
+                        account TEXT,
+                        PRIMARY KEY(billId, yearMonth)
+                    )
+                """.trimIndent())
+            }
+        }
+
         @Volatile private var INSTANCE: ButiDb? = null
         fun get(context: Context): ButiDb = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, ButiDb::class.java, "buti.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .build()
                 .also { INSTANCE = it }
         }

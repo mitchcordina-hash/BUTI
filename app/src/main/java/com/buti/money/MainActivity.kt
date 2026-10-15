@@ -42,6 +42,13 @@ class MainActivity : ComponentActivity() {
 class ButiViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = ButiDb.get(app).dao()
     val entries = dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val monthlyBillPayments = dao.observeMonthlyBillPayments()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
     val savingsGoals = dao.observeSavingsGoals().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val prefs = app.getSharedPreferences("buti_settings", Context.MODE_PRIVATE)
     var payday by mutableIntStateOf(prefs.getInt("payday", 15))
