@@ -286,7 +286,11 @@ fun iconFor(s: Screen) = when(s) {
     val days = daysUntilPayday(vm.payday).coerceAtLeast(1)
     val daily = available / days
     var showAffordability by remember { mutableStateOf(false) }
+    var showBalanceDialog by remember { mutableStateOf(false) }
+    var bankText by remember { mutableStateOf(vm.bankBalance.toString()) }
+    var revolutText by remember { mutableStateOf(vm.revolutBalance.toString()) }
 
+    if (showBalanceDialog) { AlertDialog(onDismissRequest={showBalanceDialog=false}, title={Text("Edit balances")}, text={Column { OutlinedTextField(value=bankText, onValueChange={bankText=it}, label={Text("Bank (€)")}); OutlinedTextField(value=revolutText, onValueChange={revolutText=it}, label={Text("Revolut (€)")}) }}, confirmButton={Button(enabled=bankText.toDoubleOrNull()!=null && revolutText.toDoubleOrNull()!=null, onClick={vm.saveBalances(bankText.toDouble(),revolutText.toDouble()); showBalanceDialog=false}) { Text("Save") }}, dismissButton={TextButton(onClick={showBalanceDialog=false}) { Text("Cancel") }}) }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=10.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item { Text(
     "Your money. Made simple.",
@@ -294,6 +298,7 @@ fun iconFor(s: Screen) = when(s) {
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.primary
 ) }
+        item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={showBalanceDialog=true}) { Text("Edit") } } }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
