@@ -42,6 +42,13 @@ class MainActivity : ComponentActivity() {
 class ButiViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = ButiDb.get(app).dao()
     val entries = dao.observeAll().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val monthlyBillPayments = dao.observeMonthlyBillPayments()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+
     val savingsGoals = dao.observeSavingsGoals().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     private val prefs = app.getSharedPreferences("buti_settings", Context.MODE_PRIVATE)
     var payday by mutableIntStateOf(prefs.getInt("payday", 15))
@@ -55,6 +62,67 @@ fun saveSpendingBudget(amount: Double) {
     spendingBudget = amount
     prefs.edit().putFloat("spending_budget", amount.toFloat()).apply()
 }
+    var bankBalance by mutableStateOf(
+        prefs.getFloat("bank_balance", 1157.56f).toDouble()
+    )
+        private set
+
+    var revolutBalance by mutableStateOf(
+        prefs.getFloat("revolut_balance", 195.18f).toDouble()
+    )
+        private set
+
+    private fun initializeBalances() {
+        viewModelScope.launch {
+            dao.insertAccountBalance(
+                AccountBalance("Bank", kotlin.math.round(bankBalance * 100).toLong())
+            )
+            dao.insertAccountBalance(
+                AccountBalance("Revolut", kotlin.math.round(revolutBalance * 100).toLong())
+            )
+            observeBalancesFromRoom()
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            dao.importLegacyOctober2026Payments()
+            initializeBalances()
+        }
+    }
+
+    private fun observeBalancesFromRoom() {
+        viewModelScope.launch {
+            dao.observeAccountBalances().collect { balances ->
+                balances.find { it.account == "Bank" }?.let {
+                    bankBalance = it.balanceCents / 100.0
+                }
+                balances.find { it.account == "Revolut" }?.let {
+                    revolutBalance = it.balanceCents / 100.0
+                }
+            }
+        }
+    }
+
+    fun saveBalances(bank: Double, revolut: Double) {
+        viewModelScope.launch {
+            val bankCents = kotlin.math.round(bank * 100).toLong()
+            val revolutCents = kotlin.math.round(revolut * 100).toLong()
+
+            dao.insertAccountBalance(AccountBalance("Bank", bankCents))
+            dao.insertAccountBalance(AccountBalance("Revolut", revolutCents))
+            dao.saveAccountBalances(bankCents, revolutCents)
+
+            bankBalance = bank
+            revolutBalance = revolut
+
+            prefs.edit()
+                .putFloat("bank_balance", bank.toFloat())
+                .putFloat("revolut_balance", revolut.toFloat())
+                .apply()
+        }
+    }
+
     fun savePayday(day: Int) {
         payday = day
         prefs.edit().putInt("payday", day).apply()
@@ -67,9 +135,10 @@ fun saveSpendingBudget(amount: Double) {
         recurring: Boolean = false,
         savingsGoalId: Long? = null,
         category: String? = null,
-        createdAt: Long? = null
+        createdAt: Long? = null,
+        account: String? = null
     ) = viewModelScope.launch {
-        dao.insert(
+        dao.insertWithBalance(
             MoneyEntry(
                 name=name,
                 amount=amount,
@@ -78,12 +147,28 @@ fun saveSpendingBudget(amount: Double) {
                 recurring=recurring,
                 savingsGoalId=savingsGoalId,
                 category=category,
-                createdAt=createdAt ?: System.currentTimeMillis()
+                createdAt=createdAt ?: System.currentTimeMillis(),
+                account=account
             )
         )
     }
-    fun delete(e: MoneyEntry) = viewModelScope.launch { dao.delete(e) }
-    fun update(e: MoneyEntry) = viewModelScope.launch { dao.update(e) }
+    fun payMonthlyBill(billId: Long, yearMonth: String) =
+        viewModelScope.launch {
+            dao.payMonthlyBill(billId, yearMonth)
+        }
+
+    fun unpayMonthlyBill(billId: Long, yearMonth: String) =
+        viewModelScope.launch {
+            dao.unpayMonthlyBill(billId, yearMonth)
+        }
+
+    fun delete(e: MoneyEntry) = viewModelScope.launch {
+        dao.deleteWithBalance(e)
+    }
+
+    fun update(e: MoneyEntry) = viewModelScope.launch {
+        dao.updateWithBalance(e)
+    }
 
     fun addSavingsGoal(name: String, targetAmount: Double) = viewModelScope.launch {
         dao.insertSavingsGoal(SavingsGoal(name=name, targetAmount=targetAmount))
@@ -228,6 +313,8 @@ fun iconFor(s: Screen) = when(s) {
 
 @Composable fun Dashboard(vm: ButiViewModel, go: (Screen, Boolean)->Unit) {
     val entries by vm.entries.collectAsState()
+    val monthlyPayments by vm.monthlyBillPayments.collectAsState()
+    val currentMonth = YearMonth.now().toString()
     val goals by vm.savingsGoals.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
    val bills = entries
@@ -263,11 +350,34 @@ fun iconFor(s: Screen) = when(s) {
                 java.time.temporal.ChronoUnit.DAYS.between(today, nextDue)
             }
         }
-    val available = income - bills - spend - saving
     val days = daysUntilPayday(vm.payday).coerceAtLeast(1)
-    val daily = available / days
-    var showAffordability by remember { mutableStateOf(false) }
+    val nextPayday = LocalDate.now().plusDays(days)
 
+    val unpaidBills = entries
+        .filter {
+            it.type == "BILL" &&
+                !isBillPaidForMonth(it, monthlyPayments, currentMonth)
+        }
+        .filter { bill ->
+            val dueDay = bill.dueDay ?: return@filter false
+            val thisMonth = YearMonth.from(today)
+            val thisDue = thisMonth.atDay(
+                dueDay.coerceIn(1, thisMonth.lengthOfMonth())
+            )
+            !thisDue.isAfter(nextPayday)
+        }
+        .sumOf { it.amount }
+
+    val groceryReserve = 100.0 * days.toDouble() / 7.0
+    val available = vm.bankBalance + vm.revolutBalance -
+        unpaidBills - groceryReserve
+    val daily = available.coerceAtLeast(0.0) / days
+    var showAffordability by remember { mutableStateOf(false) }
+    var showBalanceDialog by remember { mutableStateOf(false) }
+    var bankText by remember { mutableStateOf(vm.bankBalance.toString()) }
+    var revolutText by remember { mutableStateOf(vm.revolutBalance.toString()) }
+
+    if (showBalanceDialog) { AlertDialog(onDismissRequest={showBalanceDialog=false}, title={Text("Edit balances")}, text={Column { OutlinedTextField(value=bankText, onValueChange={bankText=it}, label={Text("Bank (€)")}); OutlinedTextField(value=revolutText, onValueChange={revolutText=it}, label={Text("Revolut (€)")}) }}, confirmButton={Button(enabled=bankText.toDoubleOrNull()!=null && revolutText.toDoubleOrNull()!=null, onClick={vm.saveBalances(bankText.toDouble(),revolutText.toDouble()); showBalanceDialog=false}) { Text("Save") }}, dismissButton={TextButton(onClick={showBalanceDialog=false}) { Text("Cancel") }}) }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal=16.dp, vertical=10.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
         item { Text(
     "Your money. Made simple.",
@@ -275,6 +385,11 @@ fun iconFor(s: Screen) = when(s) {
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.primary
 ) }
+        item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={
+            bankText = vm.bankBalance.toString()
+            revolutText = vm.revolutBalance.toString()
+            showBalanceDialog = true
+        }) { Text("Edit") } } }
         item { HeroCard("SAFE TO SPEND TODAY", daily, "€${money(available)} available • $days days to payday") }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Income", income, Modifier.weight(1f)); MiniCard("Bills", bills, Modifier.weight(1f)) } }
         item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)) { MiniCard("Spent", spend, Modifier.weight(1f)); MiniCard("Savings", saving, Modifier.weight(1f)) } }
@@ -293,7 +408,12 @@ fun iconFor(s: Screen) = when(s) {
                     Column(
                         Modifier.fillMaxWidth().padding(14.dp)
                     ) {
-                        Text("Savings goal", style=MaterialTheme.typography.bodySmall)
+                        Text(
+    "Savings goal",
+    style = MaterialTheme.typography.bodySmall,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.primary
+)
                         Text(goal.name, fontWeight=FontWeight.Bold)
                         Text(
                             "€${money(dashboardGoalSaved)} / €${money(goal.targetAmount)} • $percent%",
@@ -853,6 +973,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     openAdd:Boolean=false
 ) {
     val all by vm.entries.collectAsState()
+    val monthlyPayments by vm.monthlyBillPayments.collectAsState()
+    val currentMonth = YearMonth.now().toString()
+
     val list = all.filter { it.type == type }.let { entries ->
         if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
     }
@@ -1189,7 +1312,23 @@ list.forEach { e ->
                 },
                 {
                     vm.delete(e)
-                }
+                },
+                togglePaid = if (e.type == "BILL") {
+                    if (e.recurring) {
+                        {
+                            if (isBillPaidForMonth(e, monthlyPayments, currentMonth)) {
+                                vm.unpayMonthlyBill(e.id, currentMonth)
+                            } else {
+                                vm.payMonthlyBill(e.id, currentMonth)
+                            }
+                        }
+                    } else {
+                        { vm.update(e.copy(paid = !e.paid)) }
+                    }
+                } else null,
+                effectivePaid = if (e.type == "BILL") {
+                    isBillPaidForMonth(e, monthlyPayments, currentMonth)
+                } else e.paid
             )
         }
     }
@@ -1199,7 +1338,7 @@ list.forEach { e ->
         type,
         dueDay,
         edit,
-        onSave={name,amount,day,recurring,category,transactionDate ->
+        onSave={name,amount,day,recurring,category,transactionDate,account ->
             if(edit==null) {
                 vm.add(
                     name=name,
@@ -1208,7 +1347,8 @@ list.forEach { e ->
                     dueDay=day,
                     recurring=recurring,
                     category=category,
-                    createdAt=transactionDate
+                    createdAt=transactionDate,
+                    account=account
                 )
             } else {
                 vm.update(
@@ -1218,7 +1358,8 @@ list.forEach { e ->
                         dueDay=day,
                         recurring=recurring,
                         category=category,
-                        createdAt=transactionDate ?: edit!!.createdAt
+                        createdAt=transactionDate ?: edit!!.createdAt,
+                        account=account
                     )
                 )
             }
@@ -1228,7 +1369,7 @@ list.forEach { e ->
     )
 }
 
-@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit) {
+@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit, togglePaid:(()->Unit)? = null, effectivePaid:Boolean = e.paid) {
     var confirmDelete by remember { mutableStateOf(false) }
 
     Card(Modifier.fillMaxWidth()) {
@@ -1274,10 +1415,24 @@ list.forEach { e ->
                 Text("↻ Monthly", style=MaterialTheme.typography.bodySmall)
             }
 
+            if (e.type == "BILL") {
+                Text(
+                    if (effectivePaid) "PAID" else "UNPAID",
+                    style=MaterialTheme.typography.bodySmall,
+                    color=if (effectivePaid) MaterialTheme.colorScheme.primary
+                          else MaterialTheme.colorScheme.error
+                )
+            }
+
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement=Arrangement.End
             ) {
+                if (e.type == "BILL" && togglePaid != null) {
+                    TextButton(onClick=togglePaid) {
+                        Text(if (effectivePaid) "Mark Unpaid" else "Mark Paid")
+                    }
+                }
                 IconButton(onClick=edit) {
                     Icon(Icons.Default.Edit, contentDescription="Edit")
                 }
@@ -1306,11 +1461,12 @@ list.forEach { e ->
     }
 }
 
-@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?,Long?)->Unit, onClose:()->Unit) {
+@Composable fun EntryDialog(type:String, askDueDay:Boolean, existing:MoneyEntry?, onSave:(String,Double,Int?,Boolean,String?,Long?,String)->Unit, onClose:()->Unit) {
     var name by remember(existing){mutableStateOf(existing?.name ?: "")}; var amount by remember(existing){mutableStateOf(existing?.amount?.toString() ?: "")}; var day by remember(existing){mutableStateOf(existing?.dueDay?.toString() ?: "")}
     var recurring by remember(existing){mutableStateOf(existing?.recurring ?: false)}
     var category by remember(existing){mutableStateOf(existing?.category ?: "Other")}
     var categoryMenuOpen by remember { mutableStateOf(false) }
+    var selectedAccount by remember(existing) { mutableStateOf(existing?.account ?: "Bank") }
 
     var spendDate by remember(existing) {
         mutableStateOf(
@@ -1349,6 +1505,7 @@ list.forEach { e ->
     )
 )
 
+        Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("Bank", "Revolut").forEach { account -> FilterChip(selected=selectedAccount==account, onClick={selectedAccount=account}, label={Text(account)}) } }
         if (type == "SPEND") {
             Box {
                 OutlinedButton(
@@ -1404,6 +1561,7 @@ list.forEach { e ->
             .toInstant()
             .toEpochMilli()
     } else null
+    , selectedAccount
 )}){Text("Save")}}, dismissButton={TextButton(onClick=onClose){Text("Cancel")}})
 }
 
