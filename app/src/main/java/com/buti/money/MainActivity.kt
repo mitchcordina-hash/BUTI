@@ -385,7 +385,7 @@ fun iconFor(s: Screen) = when(s) {
     fontWeight = FontWeight.Bold,
     color = MaterialTheme.colorScheme.primary
 ) }
-        item { Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={
+        item { Column(Modifier.fillMaxWidth()) { Text("Actual balance: €${money(vm.bankBalance + vm.revolutBalance)}", fontWeight=FontWeight.Bold); TextButton(onClick={
             bankText = vm.bankBalance.toString()
             revolutText = vm.revolutBalance.toString()
             showBalanceDialog = true
