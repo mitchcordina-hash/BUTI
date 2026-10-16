@@ -85,7 +85,10 @@ fun saveSpendingBudget(amount: Double) {
     }
 
     init {
-        initializeBalances()
+        viewModelScope.launch {
+            dao.importLegacyOctober2026Payments()
+            initializeBalances()
+        }
     }
 
     private fun observeBalancesFromRoom() {
@@ -102,23 +105,21 @@ fun saveSpendingBudget(amount: Double) {
     }
 
     fun saveBalances(bank: Double, revolut: Double) {
-        bankBalance = bank
-        revolutBalance = revolut
-        prefs.edit()
-            .putFloat("bank_balance", bank.toFloat())
-            .putFloat("revolut_balance", revolut.toFloat())
-            .apply()
         viewModelScope.launch {
-            dao.insertAccountBalance(
-                AccountBalance("Bank", kotlin.math.round(bank * 100).toLong())
-            )
-            dao.insertAccountBalance(
-                AccountBalance("Revolut", kotlin.math.round(revolut * 100).toLong())
-            )
-            dao.saveAccountBalances(
-                kotlin.math.round(bank * 100).toLong(),
-                kotlin.math.round(revolut * 100).toLong()
-            )
+            val bankCents = kotlin.math.round(bank * 100).toLong()
+            val revolutCents = kotlin.math.round(revolut * 100).toLong()
+
+            dao.insertAccountBalance(AccountBalance("Bank", bankCents))
+            dao.insertAccountBalance(AccountBalance("Revolut", revolutCents))
+            dao.saveAccountBalances(bankCents, revolutCents)
+
+            bankBalance = bank
+            revolutBalance = revolut
+
+            prefs.edit()
+                .putFloat("bank_balance", bank.toFloat())
+                .putFloat("revolut_balance", revolut.toFloat())
+                .apply()
         }
     }
 
@@ -151,6 +152,16 @@ fun saveSpendingBudget(amount: Double) {
             )
         )
     }
+    fun payMonthlyBill(billId: Long, yearMonth: String) =
+        viewModelScope.launch {
+            dao.payMonthlyBill(billId, yearMonth)
+        }
+
+    fun unpayMonthlyBill(billId: Long, yearMonth: String) =
+        viewModelScope.launch {
+            dao.unpayMonthlyBill(billId, yearMonth)
+        }
+
     fun delete(e: MoneyEntry) = viewModelScope.launch {
         dao.deleteWithBalance(e)
     }
@@ -302,6 +313,8 @@ fun iconFor(s: Screen) = when(s) {
 
 @Composable fun Dashboard(vm: ButiViewModel, go: (Screen, Boolean)->Unit) {
     val entries by vm.entries.collectAsState()
+    val monthlyPayments by vm.monthlyBillPayments.collectAsState()
+    val currentMonth = YearMonth.now().toString()
     val goals by vm.savingsGoals.collectAsState()
     val income = entries.filter{it.type=="INCOME"}.sumOf{it.amount}
    val bills = entries
@@ -341,21 +354,17 @@ fun iconFor(s: Screen) = when(s) {
     val nextPayday = LocalDate.now().plusDays(days)
 
     val unpaidBills = entries
-        .filter { it.type == "BILL" && !it.paid }
+        .filter {
+            it.type == "BILL" &&
+                !isBillPaidForMonth(it, monthlyPayments, currentMonth)
+        }
         .filter { bill ->
             val dueDay = bill.dueDay ?: return@filter false
             val thisMonth = YearMonth.from(today)
             val thisDue = thisMonth.atDay(
                 dueDay.coerceIn(1, thisMonth.lengthOfMonth())
             )
-            val nextDue = if (thisDue.isBefore(today)) {
-                val nextMonth = thisMonth.plusMonths(1)
-                nextMonth.atDay(
-                    dueDay.coerceIn(1, nextMonth.lengthOfMonth())
-                )
-            } else thisDue
-
-            nextDue.isBefore(nextPayday) || nextDue.isEqual(nextPayday)
+            !thisDue.isAfter(nextPayday)
         }
         .sumOf { it.amount }
 
@@ -964,6 +973,9 @@ fun SavingsGoalDialog(onSave:(String,Double)->Unit, onClose:()->Unit) {
     openAdd:Boolean=false
 ) {
     val all by vm.entries.collectAsState()
+    val monthlyPayments by vm.monthlyBillPayments.collectAsState()
+    val currentMonth = YearMonth.now().toString()
+
     val list = all.filter { it.type == type }.let { entries ->
         if (type == "BILL") entries.sortedBy { it.dueDay ?: 32 } else entries
     }
@@ -1302,8 +1314,21 @@ list.forEach { e ->
                     vm.delete(e)
                 },
                 togglePaid = if (e.type == "BILL") {
-                    { vm.update(e.copy(paid = !e.paid)) }
-                } else null
+                    if (e.recurring) {
+                        {
+                            if (isBillPaidForMonth(e, monthlyPayments, currentMonth)) {
+                                vm.unpayMonthlyBill(e.id, currentMonth)
+                            } else {
+                                vm.payMonthlyBill(e.id, currentMonth)
+                            }
+                        }
+                    } else {
+                        { vm.update(e.copy(paid = !e.paid)) }
+                    }
+                } else null,
+                effectivePaid = if (e.type == "BILL") {
+                    isBillPaidForMonth(e, monthlyPayments, currentMonth)
+                } else e.paid
             )
         }
     }
@@ -1344,7 +1369,7 @@ list.forEach { e ->
     )
 }
 
-@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit, togglePaid:(()->Unit)? = null) {
+@Composable fun EntryRow(e:MoneyEntry, edit:()->Unit, delete:()->Unit, togglePaid:(()->Unit)? = null, effectivePaid:Boolean = e.paid) {
     var confirmDelete by remember { mutableStateOf(false) }
 
     Card(Modifier.fillMaxWidth()) {
@@ -1392,9 +1417,9 @@ list.forEach { e ->
 
             if (e.type == "BILL") {
                 Text(
-                    if (e.paid) "PAID" else "UNPAID",
+                    if (effectivePaid) "PAID" else "UNPAID",
                     style=MaterialTheme.typography.bodySmall,
-                    color=if (e.paid) MaterialTheme.colorScheme.primary
+                    color=if (effectivePaid) MaterialTheme.colorScheme.primary
                           else MaterialTheme.colorScheme.error
                 )
             }
@@ -1405,7 +1430,7 @@ list.forEach { e ->
             ) {
                 if (e.type == "BILL" && togglePaid != null) {
                     TextButton(onClick=togglePaid) {
-                        Text(if (e.paid) "Mark Unpaid" else "Mark Paid")
+                        Text(if (effectivePaid) "Mark Unpaid" else "Mark Paid")
                     }
                 }
                 IconButton(onClick=edit) {

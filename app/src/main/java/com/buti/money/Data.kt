@@ -39,7 +39,14 @@ data class MonthlyBillPayment(
     val yearMonth: String,
     val paidAt: Long,
     val amountCents: Long,
-    val account: String?
+    val account: String?,
+    val balanceDeducted: Boolean = false
+)
+
+@Entity(tableName = "app_settings")
+data class AppSetting(
+    @PrimaryKey val key: String,
+    val value: String
 )
 
 @Entity(tableName = "account_balances")
@@ -156,7 +163,8 @@ interface MoneyDao {
                 yearMonth = yearMonth,
                 paidAt = System.currentTimeMillis(),
                 amountCents = amountCents,
-                account = account
+                account = account,
+                balanceDeducted = true
             )
         )
 
@@ -171,10 +179,11 @@ interface MoneyDao {
         val payment = getMonthlyBillPayment(billId, yearMonth)
             ?: return
 
-        val account = payment.account
-            ?: error("Payment has no account")
-
-        applyBalanceChange(account, payment.amountCents)
+        if (payment.balanceDeducted) {
+            val account = payment.account
+                ?: error("Payment has no account")
+            applyBalanceChange(account, payment.amountCents)
+        }
         deleteMonthlyBillPayment(payment)
     }
 
@@ -190,16 +199,15 @@ interface MoneyDao {
     """)
     suspend fun getLegacyPaidRecurringBills(): List<MoneyEntry>
 
-    @Query("""
-        INSERT OR IGNORE INTO monthly_bill_payments
-        (billId, yearMonth, paidAt, amountCents, account)
-        VALUES (-1, 'IMPORT-2026-10', 0, 0, NULL)
-    """)
-    suspend fun markOctoberImportStarted(): Long
+    @Query("SELECT * FROM app_settings WHERE `key` = :key LIMIT 1")
+    suspend fun getAppSetting(key: String): AppSetting?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAppSetting(setting: AppSetting)
 
     @Transaction
     suspend fun importLegacyOctober2026Payments() {
-        if (markOctoberImportStarted() == -1L) return
+        if (getAppSetting("october_2026_import_done") != null) return
 
         val yearMonth = "2026-10"
 
@@ -218,6 +226,7 @@ interface MoneyDao {
                 )
             )
         }
+        insertAppSetting(AppSetting("october_2026_import_done", "1"))
     }
 
     @Query("SELECT * FROM entries ORDER BY createdAt DESC") fun observeAll(): Flow<List<MoneyEntry>>
@@ -323,7 +332,7 @@ interface MoneyDao {
     suspend fun deleteSavingsGoal(goal: SavingsGoal)
 }
 
-@Database(entities = [MoneyEntry::class, SavingsGoal::class, AccountBalance::class, MonthlyBillPayment::class], version = 9, exportSchema = false)
+@Database(entities = [MoneyEntry::class, SavingsGoal::class, AccountBalance::class, MonthlyBillPayment::class, AppSetting::class], version = 11, exportSchema = false)
 abstract class ButiDb : RoomDatabase() {
     abstract fun dao(): MoneyDao
     companion object {
@@ -392,10 +401,30 @@ abstract class ButiDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS app_settings (
+                        `key` TEXT NOT NULL PRIMARY KEY,
+                        value TEXT NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    ALTER TABLE monthly_bill_payments
+                    ADD COLUMN balanceDeducted INTEGER NOT NULL DEFAULT 0
+                """.trimIndent())
+            }
+        }
+
         @Volatile private var INSTANCE: ButiDb? = null
         fun get(context: Context): ButiDb = INSTANCE ?: synchronized(this) {
             INSTANCE ?: Room.databaseBuilder(context.applicationContext, ButiDb::class.java, "buti.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .build()
                 .also { INSTANCE = it }
         }
